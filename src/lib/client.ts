@@ -10,6 +10,80 @@
  * ---------------------------------------------------------------
  */
 
+export interface UpdateProfileRequestDto {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
+export interface UserInfoDto {
+  /** @format int64 */
+  id?: number;
+  firstName?: string;
+  lastName?: string;
+  mobileNumber?: string;
+  category?: string;
+  nationalId?: string;
+  email?: string;
+  /** @format date-time */
+  birthDate?: string;
+  userLevel?: "NORMAL" | "VIP" | "COLLEAGUE";
+  isKycVerified?: boolean;
+  status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
+  referralCode?: string;
+  /** @format date-time */
+  createdAt?: string;
+}
+
+export interface ChartPreferencesDto {
+  defaultTimeframe?: string;
+  chartType?: string;
+  indicators?: string[];
+  showGrid?: boolean;
+  colorTheme?: string;
+}
+
+export interface NotificationSettingsDto {
+  emailEnabled?: boolean;
+  smsEnabled?: boolean;
+  pushEnabled?: boolean;
+  tradeNotifications?: boolean;
+  priceAlerts?: boolean;
+  systemUpdates?: boolean;
+  marginCalls?: boolean;
+  fundingCharges?: boolean;
+  referralUpdates?: boolean;
+}
+
+export interface UserPreferencesDto {
+  baseCurrency?: string;
+  language?: string;
+  theme?: string;
+  chartPreferences?: ChartPreferencesDto;
+  notificationPreferences?: NotificationSettingsDto;
+  favoriteMarkets?: string[];
+}
+
+export interface LanguageDto {
+  language?: string;
+}
+
+export interface BaseCurrencyDto {
+  currency?: string;
+}
+
+export interface UpdateBankAccountDto {
+  bankName?: string;
+  iban?: string;
+  ownerName?: string;
+}
+
+export interface UpdateApiKeyDto {
+  name?: string;
+  permissions?: string[];
+  ipWhitelist?: string[];
+}
+
 export interface UserCategoryDto {
   /** @format int64 */
   id?: number;
@@ -170,80 +244,6 @@ export interface ApplicationConfig {
   value?: string;
   /** @format date-time */
   date?: string;
-}
-
-export interface UpdateProfileRequestDto {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-}
-
-export interface UserInfoDto {
-  /** @format int64 */
-  id?: number;
-  firstName?: string;
-  lastName?: string;
-  mobileNumber?: string;
-  category?: string;
-  nationalId?: string;
-  email?: string;
-  /** @format date-time */
-  birthDate?: string;
-  userLevel?: "NORMAL" | "VIP" | "COLLEAGUE";
-  isKycVerified?: boolean;
-  status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
-  referralCode?: string;
-  /** @format date-time */
-  createdAt?: string;
-}
-
-export interface ChartPreferencesDto {
-  defaultTimeframe?: string;
-  chartType?: string;
-  indicators?: string[];
-  showGrid?: boolean;
-  colorTheme?: string;
-}
-
-export interface NotificationSettingsDto {
-  emailEnabled?: boolean;
-  smsEnabled?: boolean;
-  pushEnabled?: boolean;
-  tradeNotifications?: boolean;
-  priceAlerts?: boolean;
-  systemUpdates?: boolean;
-  marginCalls?: boolean;
-  fundingCharges?: boolean;
-  referralUpdates?: boolean;
-}
-
-export interface UserPreferencesDto {
-  baseCurrency?: string;
-  language?: string;
-  theme?: string;
-  chartPreferences?: ChartPreferencesDto;
-  notificationPreferences?: NotificationSettingsDto;
-  favoriteMarkets?: string[];
-}
-
-export interface LanguageDto {
-  language?: string;
-}
-
-export interface BaseCurrencyDto {
-  currency?: string;
-}
-
-export interface UpdateBankAccountDto {
-  bankName?: string;
-  iban?: string;
-  ownerName?: string;
-}
-
-export interface UpdateApiKeyDto {
-  name?: string;
-  permissions?: string[];
-  ipWhitelist?: string[];
 }
 
 export interface VerifyCodeDto {
@@ -688,7 +688,15 @@ export interface TradeFilter {
   /** @format int32 */
   size?: number;
   side?: "BUY" | "SELL" | "LONG" | "SHORT";
-  status?: string;
+  status?:
+    | "PENDING"
+    | "ACCEPTED"
+    | "PARTIALLY_FILLED"
+    | "FILLED"
+    | "CANCELLED"
+    | "REJECTED"
+    | "EXPIRED"
+    | "FAILED";
   username?: string;
   /** @format date-time */
   fromDate?: string;
@@ -872,7 +880,15 @@ export interface OrderFilter {
   /** @format int32 */
   size?: number;
   side?: "BUY" | "SELL" | "LONG" | "SHORT";
-  status?: string;
+  status?:
+    | "PENDING"
+    | "ACCEPTED"
+    | "PARTIALLY_FILLED"
+    | "FILLED"
+    | "CANCELLED"
+    | "REJECTED"
+    | "EXPIRED"
+    | "FAILED";
   username?: string;
   productCode?: string;
   /** @format date-time */
@@ -968,191 +984,6 @@ export interface StandardResponse {
   data?: object;
   translate?: string;
   tranceNumber?: string;
-}
-
-export interface WithdrawalAccountRequest {
-  fromAccount?: string;
-  toAccount?: string;
-  /** @format int64 */
-  fromPartyId?: number;
-  /** @format int64 */
-  toPartyId?: number;
-  toIdentifier?: string;
-  amount?: number;
-  depositId?: string;
-  description?: string;
-  currencyType?: string;
-  transactionType?: string;
-  fromBasket?: boolean;
-  stan?: string;
-}
-
-export interface TransferRequestDto {
-  fromAccountNumber?: string;
-  toAccountNumber?: string;
-  amount?: number;
-  currency?: string;
-  /** @format int64 */
-  partyId?: number;
-  description?: string;
-  note?: string;
-  traceNumber?: string;
-  operation?: string;
-  stan?: string;
-  referenceNumber?: string;
-}
-
-export interface AccountChangeStatusDto {
-  accountNumber?: string;
-  /** @format int64 */
-  facilityId?: number;
-  statusCode?: string;
-  comment?: string;
-}
-
-export interface DepositRequestDto {
-  accountNumber?: string;
-  amount?: number;
-  description?: string;
-  currency?: string;
-  stan?: string;
-  traceNumber?: string;
-}
-
-export interface UserAccountFilter {
-  /** @format int64 */
-  userId?: number;
-  username?: string;
-  mobileNumber?: string;
-  name?: string;
-  nationalId?: string;
-  assetCode?: string;
-  typeCode?: string;
-  /** @format int32 */
-  pageNumber?: number;
-  /** @format int32 */
-  pageSize?: number;
-}
-
-export interface PageUserAccount {
-  users?: UserAccountDto[];
-  /** @format int64 */
-  count?: number;
-}
-
-export interface UserChangeStatusDto {
-  status?: string;
-}
-
-export interface UserWalletDto {
-  /** @format int64 */
-  id?: number;
-  firstName?: string;
-  lastName?: string;
-  phoneNumber?: string;
-  nationalId?: string;
-  /** @format date-time */
-  birthDate?: string;
-  username?: string;
-  email?: string;
-  status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
-  /** @format int64 */
-  partyId?: number;
-  accountNumber?: string;
-  balance?: number;
-  blockedBalance?: number;
-  marginBalance?: number;
-  creditBalance?: number;
-  creditLimit?: number;
-  joinDate?: string;
-  lastActivity?: string;
-  marginRatio?: string;
-  goldCash?: string;
-  goldTomorrowDayAfter?: string;
-  goldCommitment?: string;
-  walletTransactions?: AccountTransactionsDto[];
-}
-
-export interface TotalFinancialAccountResponseDto {
-  accounts?: FinancialAccountDto[];
-  /** @format int64 */
-  totalCountAccount?: number;
-  totalBalance?: number;
-  asset?: string;
-}
-
-export interface CashoutFilterDto {
-  /** @format int64 */
-  id?: number;
-  statusType?: string;
-  /** @format int64 */
-  accountTransactionId?: number;
-  externalReference?: string;
-  stan?: string;
-  destinationNumber?: string;
-  /** @format int32 */
-  from?: number;
-  /** @format int32 */
-  size?: number;
-}
-
-export interface CashoutDto {
-  /** @format int64 */
-  id?: number;
-  /** @format int64 */
-  accountTransactionId?: number;
-  destinationNumber?: string;
-  destinationName?: string;
-  amount?: number;
-  statusType?:
-    | "Requested"
-    | "InProcessing"
-    | "SentBank"
-    | "Reject"
-    | "Reverse"
-    | "Cancelled"
-    | "Completed";
-  externalReference?: string;
-  /** @format date-time */
-  postDate?: string;
-  reverseReference?: string;
-  /** @format date-time */
-  reverseDateTime?: string;
-  stan?: string;
-  /** @format date-time */
-  entryDate?: string;
-}
-
-export interface CashoutChangeStatusRequestDto {
-  /** @format int64 */
-  id?: number;
-  statusType?:
-    | "Requested"
-    | "InProcessing"
-    | "SentBank"
-    | "Reject"
-    | "Reverse"
-    | "Cancelled"
-    | "Completed";
-}
-
-export interface InvestmentAccountDto {
-  accountNumber?: string;
-  assetType?: string;
-  accountType?: string;
-  accountTypeCode?: string;
-  quantity?: number;
-  currentValue?: number;
-  creditGranted?: number;
-  /** @format date-time */
-  startDate?: string;
-  /** @format date */
-  endDate?: string;
-  usableAsCollateral?: boolean;
-  status?: string;
-  statusCode?: string;
-  annualRate?: string;
-  annualRateType?: string;
 }
 
 export interface ResetPasswordDto {
@@ -1342,6 +1173,191 @@ export interface RegisterUserRequestDto {
   clientOtp?: string;
 }
 
+export interface WithdrawalAccountRequest {
+  fromAccount?: string;
+  toAccount?: string;
+  /** @format int64 */
+  fromPartyId?: number;
+  /** @format int64 */
+  toPartyId?: number;
+  toIdentifier?: string;
+  amount?: number;
+  depositId?: string;
+  description?: string;
+  currencyType?: string;
+  transactionType?: string;
+  fromBasket?: boolean;
+  stan?: string;
+}
+
+export interface TransferRequestDto {
+  fromAccountNumber?: string;
+  toAccountNumber?: string;
+  amount?: number;
+  currency?: string;
+  /** @format int64 */
+  partyId?: number;
+  description?: string;
+  note?: string;
+  traceNumber?: string;
+  operation?: string;
+  stan?: string;
+  referenceNumber?: string;
+}
+
+export interface AccountChangeStatusDto {
+  accountNumber?: string;
+  /** @format int64 */
+  facilityId?: number;
+  statusCode?: string;
+  comment?: string;
+}
+
+export interface DepositRequestDto {
+  accountNumber?: string;
+  amount?: number;
+  description?: string;
+  currency?: string;
+  stan?: string;
+  traceNumber?: string;
+}
+
+export interface UserAccountFilter {
+  /** @format int64 */
+  userId?: number;
+  username?: string;
+  mobileNumber?: string;
+  name?: string;
+  nationalId?: string;
+  assetCode?: string;
+  typeCode?: string;
+  /** @format int32 */
+  pageNumber?: number;
+  /** @format int32 */
+  pageSize?: number;
+}
+
+export interface PageUserAccount {
+  users?: UserAccountDto[];
+  /** @format int64 */
+  count?: number;
+}
+
+export interface UserChangeStatusDto {
+  status?: string;
+}
+
+export interface UserWalletDto {
+  /** @format int64 */
+  id?: number;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  nationalId?: string;
+  /** @format date-time */
+  birthDate?: string;
+  username?: string;
+  email?: string;
+  status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
+  /** @format int64 */
+  partyId?: number;
+  accountNumber?: string;
+  balance?: number;
+  blockedBalance?: number;
+  marginBalance?: number;
+  creditBalance?: number;
+  creditLimit?: number;
+  joinDate?: string;
+  lastActivity?: string;
+  marginRatio?: string;
+  goldCash?: string;
+  goldTomorrowDayAfter?: string;
+  goldCommitment?: string;
+  walletTransactions?: AccountTransactionsDto[];
+}
+
+export interface TotalFinancialAccountResponseDto {
+  accounts?: FinancialAccountDto[];
+  /** @format int64 */
+  totalCountAccount?: number;
+  totalBalance?: number;
+  asset?: string;
+}
+
+export interface CashoutFilterDto {
+  /** @format int64 */
+  id?: number;
+  statusType?: string;
+  /** @format int64 */
+  accountTransactionId?: number;
+  externalReference?: string;
+  stan?: string;
+  destinationNumber?: string;
+  /** @format int32 */
+  from?: number;
+  /** @format int32 */
+  size?: number;
+}
+
+export interface CashoutDto {
+  /** @format int64 */
+  id?: number;
+  /** @format int64 */
+  accountTransactionId?: number;
+  destinationNumber?: string;
+  destinationName?: string;
+  amount?: number;
+  statusType?:
+    | "Requested"
+    | "InProcessing"
+    | "SentBank"
+    | "Reject"
+    | "Reverse"
+    | "Cancelled"
+    | "Completed";
+  externalReference?: string;
+  /** @format date-time */
+  postDate?: string;
+  reverseReference?: string;
+  /** @format date-time */
+  reverseDateTime?: string;
+  stan?: string;
+  /** @format date-time */
+  entryDate?: string;
+}
+
+export interface CashoutChangeStatusRequestDto {
+  /** @format int64 */
+  id?: number;
+  statusType?:
+    | "Requested"
+    | "InProcessing"
+    | "SentBank"
+    | "Reject"
+    | "Reverse"
+    | "Cancelled"
+    | "Completed";
+}
+
+export interface InvestmentAccountDto {
+  accountNumber?: string;
+  assetType?: string;
+  accountType?: string;
+  accountTypeCode?: string;
+  quantity?: number;
+  currentValue?: number;
+  creditGranted?: number;
+  /** @format date-time */
+  startDate?: string;
+  /** @format date */
+  endDate?: string;
+  usableAsCollateral?: boolean;
+  status?: string;
+  statusCode?: string;
+  annualRate?: string;
+  annualRateType?: string;
+}
+
 export interface AccountBalanceResponse {
   accountNumber?: string;
   balance?: number;
@@ -1396,61 +1412,6 @@ export interface BiometricCredentialDto {
   /** @format date-time */
   createdAt?: string;
   isActive?: boolean;
-}
-
-export interface UserAccountShowcase {
-  /** @format int64 */
-  userCount?: number;
-  /** @format int64 */
-  userActiveCount?: number;
-  /** @format int64 */
-  userTradeCount?: number;
-  /** @format int64 */
-  openMarginCount?: number;
-  /** @format int64 */
-  warningMarginCount?: number;
-}
-
-export interface TradeSummaryByCurrencyDto {
-  productCode?: string;
-  side?: "BUY" | "SELL" | "LONG" | "SHORT";
-  totalQuantity?: number;
-  totalNotional?: number;
-  totalFee?: number;
-  /** @format int64 */
-  tradeCount?: number;
-}
-
-export interface PriceDto {
-  currency?: string;
-  price?: number;
-}
-
-export interface ShowcaseDto {
-  /** @format int64 */
-  allUserCount?: number;
-  /** @format int64 */
-  openMarginCount?: number;
-  /** @format int64 */
-  feeCount?: number;
-  /** @format int64 */
-  investmentCount?: number;
-  /** @format int64 */
-  alarmMarginCount?: number;
-  /** @format int64 */
-  spreedAmount?: number;
-  /** @format int64 */
-  volumeOfTransaction?: number;
-  prices?: PriceDto[];
-  treasury?: WalletAccountDto[];
-}
-
-export interface WalletAccountDto {
-  accountNumber?: string;
-  balance?: number;
-  currency?: string;
-  description?: string;
-  type?: string;
 }
 
 export interface UsageDto {
@@ -1726,6 +1687,63 @@ export interface FaqDto {
   description?: string;
 }
 
+export interface UserAccountShowcase {
+  /** @format int64 */
+  userCount?: number;
+  /** @format int64 */
+  userActiveCount?: number;
+  /** @format int64 */
+  userTradeCount?: number;
+  /** @format int64 */
+  openMarginCount?: number;
+  /** @format int64 */
+  warningMarginCount?: number;
+}
+
+export interface TradeSummaryByCurrencyDto {
+  productCode?: string;
+  side?: "BUY" | "SELL" | "LONG" | "SHORT";
+  totalQuantity?: number;
+  totalNotional?: number;
+  totalFee?: number;
+  /** @format int64 */
+  tradeCount?: number;
+}
+
+export interface PriceDto {
+  currency?: string;
+  price?: number;
+}
+
+export interface ShowcaseDto {
+  /** @format int64 */
+  allUserCount?: number;
+  /** @format int64 */
+  openMarginCount?: number;
+  /** @format int64 */
+  feeCount?: number;
+  /** @format int64 */
+  investmentCount?: number;
+  /** @format int64 */
+  alarmMarginCount?: number;
+  /** @format int64 */
+  spreedAmount?: number;
+  /** @format int64 */
+  volumeOfTransaction?: number;
+  goldBuyPrice?: number;
+  goldSellPrice?: number;
+  prices?: PriceDto[];
+  treasury?: WalletAccountDto[];
+}
+
+export interface WalletAccountDto {
+  accountNumber?: string;
+  balance?: number;
+  currency?: string;
+  description?: string;
+  type?: string;
+}
+
 export interface RemoveBankAccountDto {
   /** @format int64 */
   id?: number;
@@ -1923,295 +1941,6 @@ export class Api<
     /**
      * No description
      *
-     * @tags Admin
-     * @name UpdateUserCategory
-     * @summary Update user category
-     * @request PUT:/api/v1/admin/user/category
-     */
-    updateUserCategory: (data: UserCategoryDto, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/user/category`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name CreateUserCategory
-     * @summary Create user category
-     * @request POST:/api/v1/admin/user/category
-     */
-    createUserCategory: (data: UserCategoryDto, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/user/category`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves a specific entity by its unique identifier
-     *
-     * @tags Product Resource
-     * @name GetById1
-     * @summary Get entity by ID
-     * @request GET:/api/v1/admin/product/{id}
-     */
-    getById1: (id: number, params: RequestParams = {}) =>
-      this.request<Product, Product>({
-        path: `/api/v1/admin/product/${id}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Updates an existing entity with new data
-     *
-     * @tags Product Resource
-     * @name Update
-     * @summary Update an entity
-     * @request PUT:/api/v1/admin/product/{id}
-     */
-    update: (id: number, data: Product, params: RequestParams = {}) =>
-      this.request<Product, Product>({
-        path: `/api/v1/admin/product/${id}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Deletes an entity from the system
-     *
-     * @tags Product Resource
-     * @name Delete
-     * @summary Delete an entity
-     * @request DELETE:/api/v1/admin/product/{id}
-     */
-    delete: (id: number, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/v1/admin/product/${id}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name DeliveryChangeStatus
-     * @summary Change delivery status
-     * @request PUT:/api/v1/admin/physical-deliveries/{id}/status
-     */
-    deliveryChangeStatus: (
-      id: number,
-      data: PhysicalDeliveryStatusChangeDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/physical-deliveries/${id}/status`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name Schedule
-     * @summary Schedule appointment
-     * @request PUT:/api/v1/admin/physical-deliveries/{id}/schedule
-     */
-    schedule: (
-      id: number,
-      data: PhysicalDeliveryScheduleDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/physical-deliveries/${id}/schedule`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name Deliver
-     * @summary Confirm physical handover
-     * @request PUT:/api/v1/admin/physical-deliveries/{id}/deliver
-     */
-    deliver: (
-      id: number,
-      data: PhysicalDeliveryConfirmDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/physical-deliveries/${id}/deliver`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves a specific entity by its unique identifier
-     *
-     * @tags Investment Resource
-     * @name GetById2
-     * @summary Get entity by ID
-     * @request GET:/api/v1/admin/investment/{id}
-     */
-    getById2: (id: number, params: RequestParams = {}) =>
-      this.request<InvestmentPlan, InvestmentPlan>({
-        path: `/api/v1/admin/investment/${id}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Updates an existing entity with new data
-     *
-     * @tags Investment Resource
-     * @name Update1
-     * @summary Update an entity
-     * @request PUT:/api/v1/admin/investment/{id}
-     */
-    update1: (id: number, data: InvestmentPlan, params: RequestParams = {}) =>
-      this.request<InvestmentPlan, InvestmentPlan>({
-        path: `/api/v1/admin/investment/${id}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Deletes an entity from the system
-     *
-     * @tags Investment Resource
-     * @name Delete1
-     * @summary Delete an entity
-     * @request DELETE:/api/v1/admin/investment/{id}
-     */
-    delete1: (id: number, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/v1/admin/investment/${id}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves a specific entity by its unique identifier
-     *
-     * @tags FAQ Resource
-     * @name GetById3
-     * @summary Get entity by ID
-     * @request GET:/api/v1/admin/faq/{id}
-     */
-    getById3: (id: number, params: RequestParams = {}) =>
-      this.request<Faq, Faq>({
-        path: `/api/v1/admin/faq/${id}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Updates an existing entity with new data
-     *
-     * @tags FAQ Resource
-     * @name Update2
-     * @summary Update an entity
-     * @request PUT:/api/v1/admin/faq/{id}
-     */
-    update2: (id: number, data: Faq, params: RequestParams = {}) =>
-      this.request<Faq, Faq>({
-        path: `/api/v1/admin/faq/${id}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Deletes an entity from the system
-     *
-     * @tags FAQ Resource
-     * @name Delete2
-     * @summary Delete an entity
-     * @request DELETE:/api/v1/admin/faq/{id}
-     */
-    delete2: (id: number, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/v1/admin/faq/${id}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves a specific entity by its unique identifier
-     *
-     * @tags Application Config Resource
-     * @name GetById4
-     * @summary Get entity by ID
-     * @request GET:/api/v1/admin/application/config/{id}
-     */
-    getById4: (id: number, params: RequestParams = {}) =>
-      this.request<ApplicationConfig, ApplicationConfig>({
-        path: `/api/v1/admin/application/config/${id}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Updates an existing entity with new data
-     *
-     * @tags Application Config Resource
-     * @name Update3
-     * @summary Update an entity
-     * @request PUT:/api/v1/admin/application/config/{id}
-     */
-    update3: (
-      id: number,
-      data: ApplicationConfig,
-      params: RequestParams = {},
-    ) =>
-      this.request<ApplicationConfig, ApplicationConfig>({
-        path: `/api/v1/admin/application/config/${id}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Deletes an entity from the system
-     *
-     * @tags Application Config Resource
-     * @name Delete3
-     * @summary Delete an entity
-     * @request DELETE:/api/v1/admin/application/config/{id}
-     */
-    delete3: (id: number, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/api/v1/admin/application/config/${id}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
      * @tags Account
      * @name UpdateProfile
      * @summary Update user profile
@@ -2401,6 +2130,295 @@ export class Api<
     deleteApiKey: (id: number, params: RequestParams = {}) =>
       this.request<void, any>({
         path: `/api/v1/account/api-keys/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name UpdateUserCategory
+     * @summary Update user category
+     * @request PUT:/api/admin/user/category
+     */
+    updateUserCategory: (data: UserCategoryDto, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/admin/user/category`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name CreateUserCategory
+     * @summary Create user category
+     * @request POST:/api/admin/user/category
+     */
+    createUserCategory: (data: UserCategoryDto, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/admin/user/category`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves a specific entity by its unique identifier
+     *
+     * @tags Product Resource
+     * @name GetById1
+     * @summary Get entity by ID
+     * @request GET:/api/admin/product/{id}
+     */
+    getById1: (id: number, params: RequestParams = {}) =>
+      this.request<Product, Product>({
+        path: `/api/admin/product/${id}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Updates an existing entity with new data
+     *
+     * @tags Product Resource
+     * @name Update
+     * @summary Update an entity
+     * @request PUT:/api/admin/product/{id}
+     */
+    update: (id: number, data: Product, params: RequestParams = {}) =>
+      this.request<Product, Product>({
+        path: `/api/admin/product/${id}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Deletes an entity from the system
+     *
+     * @tags Product Resource
+     * @name Delete
+     * @summary Delete an entity
+     * @request DELETE:/api/admin/product/{id}
+     */
+    delete: (id: number, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/admin/product/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name DeliveryChangeStatus
+     * @summary Change delivery status
+     * @request PUT:/api/admin/physical-deliveries/{id}/status
+     */
+    deliveryChangeStatus: (
+      id: number,
+      data: PhysicalDeliveryStatusChangeDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/physical-deliveries/${id}/status`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name Schedule
+     * @summary Schedule appointment
+     * @request PUT:/api/admin/physical-deliveries/{id}/schedule
+     */
+    schedule: (
+      id: number,
+      data: PhysicalDeliveryScheduleDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/physical-deliveries/${id}/schedule`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name Deliver
+     * @summary Confirm physical handover
+     * @request PUT:/api/admin/physical-deliveries/{id}/deliver
+     */
+    deliver: (
+      id: number,
+      data: PhysicalDeliveryConfirmDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/physical-deliveries/${id}/deliver`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves a specific entity by its unique identifier
+     *
+     * @tags Investment Resource
+     * @name GetById2
+     * @summary Get entity by ID
+     * @request GET:/api/admin/investment/{id}
+     */
+    getById2: (id: number, params: RequestParams = {}) =>
+      this.request<InvestmentPlan, InvestmentPlan>({
+        path: `/api/admin/investment/${id}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Updates an existing entity with new data
+     *
+     * @tags Investment Resource
+     * @name Update1
+     * @summary Update an entity
+     * @request PUT:/api/admin/investment/{id}
+     */
+    update1: (id: number, data: InvestmentPlan, params: RequestParams = {}) =>
+      this.request<InvestmentPlan, InvestmentPlan>({
+        path: `/api/admin/investment/${id}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Deletes an entity from the system
+     *
+     * @tags Investment Resource
+     * @name Delete1
+     * @summary Delete an entity
+     * @request DELETE:/api/admin/investment/{id}
+     */
+    delete1: (id: number, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/admin/investment/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves a specific entity by its unique identifier
+     *
+     * @tags FAQ Resource
+     * @name GetById3
+     * @summary Get entity by ID
+     * @request GET:/api/admin/faq/{id}
+     */
+    getById3: (id: number, params: RequestParams = {}) =>
+      this.request<Faq, Faq>({
+        path: `/api/admin/faq/${id}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Updates an existing entity with new data
+     *
+     * @tags FAQ Resource
+     * @name Update2
+     * @summary Update an entity
+     * @request PUT:/api/admin/faq/{id}
+     */
+    update2: (id: number, data: Faq, params: RequestParams = {}) =>
+      this.request<Faq, Faq>({
+        path: `/api/admin/faq/${id}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Deletes an entity from the system
+     *
+     * @tags FAQ Resource
+     * @name Delete2
+     * @summary Delete an entity
+     * @request DELETE:/api/admin/faq/{id}
+     */
+    delete2: (id: number, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/admin/faq/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves a specific entity by its unique identifier
+     *
+     * @tags Application Config Resource
+     * @name GetById4
+     * @summary Get entity by ID
+     * @request GET:/api/admin/application/config/{id}
+     */
+    getById4: (id: number, params: RequestParams = {}) =>
+      this.request<ApplicationConfig, ApplicationConfig>({
+        path: `/api/admin/application/config/${id}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Updates an existing entity with new data
+     *
+     * @tags Application Config Resource
+     * @name Update3
+     * @summary Update an entity
+     * @request PUT:/api/admin/application/config/{id}
+     */
+    update3: (
+      id: number,
+      data: ApplicationConfig,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApplicationConfig, ApplicationConfig>({
+        path: `/api/admin/application/config/${id}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Deletes an entity from the system
+     *
+     * @tags Application Config Resource
+     * @name Delete3
+     * @summary Delete an entity
+     * @request DELETE:/api/admin/application/config/{id}
+     */
+    delete3: (id: number, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/admin/application/config/${id}`,
         method: "DELETE",
         ...params,
       }),
@@ -2747,448 +2765,6 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetWallets1
-     * @summary Get Wallets
-     * @request POST:/api/v1/admin/wallets
-     */
-    getWallets1: (
-      data: FinancialAccountFilterDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<FinancialAccountDto[], any>({
-        path: `/api/v1/admin/wallets`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name WalletWithdrawal
-     * @summary Wallet Withdrawal
-     * @request POST:/api/v1/admin/wallet/withdrawal
-     */
-    walletWithdrawal: (
-      data: WithdrawalAccountRequest,
-      params: RequestParams = {},
-    ) =>
-      this.request<TransferResponseDto, any>({
-        path: `/api/v1/admin/wallet/withdrawal`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name TreasuryWallets
-     * @summary Treasury Wallets
-     * @request POST:/api/v1/admin/wallet/treasury
-     */
-    treasuryWallets: (params: RequestParams = {}) =>
-      this.request<FinancialAccountDto[], any>({
-        path: `/api/v1/admin/wallet/treasury`,
-        method: "POST",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name WalletTransfer
-     * @summary Wallet Transfer
-     * @request POST:/api/v1/admin/wallet/transfer
-     */
-    walletTransfer: (data: TransferRequestDto, params: RequestParams = {}) =>
-      this.request<TransferResponseDto, any>({
-        path: `/api/v1/admin/wallet/transfer`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name WalletChangeStatus
-     * @summary Change Wallet status
-     * @request POST:/api/v1/admin/wallet/status/change
-     */
-    walletChangeStatus: (
-      data: AccountChangeStatusDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/wallet/status/change`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name WalletDeposit
-     * @summary Wallet Deposit
-     * @request POST:/api/v1/admin/wallet/deposit
-     */
-    walletDeposit: (data: DepositRequestDto, params: RequestParams = {}) =>
-      this.request<TransferResponseDto, any>({
-        path: `/api/v1/admin/wallet/deposit`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetUsers
-     * @summary Get users
-     * @request POST:/api/v1/admin/users
-     */
-    getUsers: (data: UserAccountFilter, params: RequestParams = {}) =>
-      this.request<PageUserAccount, any>({
-        path: `/api/v1/admin/users`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name ChangeUserStatus
-     * @summary Get users
-     * @request POST:/api/v1/admin/user/{userId}/status
-     */
-    changeUserStatus: (
-      userId: number,
-      data: UserChangeStatusDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/user/${userId}/status`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetUserWallets
-     * @summary Get user wallets
-     * @request POST:/api/v1/admin/user/wallets
-     */
-    getUserWallets: (data: UserAccountFilter, params: RequestParams = {}) =>
-      this.request<UserWalletDto[], any>({
-        path: `/api/v1/admin/user/wallets`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetUserWalletByUserId
-     * @summary Get user wallet by userId
-     * @request POST:/api/v1/admin/user/wallet/{userId}
-     */
-    getUserWalletByUserId: (userId: number, params: RequestParams = {}) =>
-      this.request<UserWalletDto, any>({
-        path: `/api/v1/admin/user/wallet/${userId}`,
-        method: "POST",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetTrades1
-     * @summary Get Trades
-     * @request POST:/api/v1/admin/trades
-     */
-    getTrades1: (data: TradeFilter, params: RequestParams = {}) =>
-      this.request<PagedTradeResponse, any>({
-        path: `/api/v1/admin/trades`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetTotalWallets
-     * @summary Get total Wallets
-     * @request POST:/api/v1/admin/total/wallets
-     */
-    getTotalWallets: (
-      data: FinancialAccountFilterDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<TotalFinancialAccountResponseDto, any>({
-        path: `/api/v1/admin/total/wallets`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves all entities from the system
-     *
-     * @tags Product Resource
-     * @name GetAll
-     * @summary Get all entities
-     * @request GET:/api/v1/admin/product
-     */
-    getAll: (params: RequestParams = {}) =>
-      this.request<Product[], Product[]>({
-        path: `/api/v1/admin/product`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Creates a new entity in the system
-     *
-     * @tags Product Resource
-     * @name Create1
-     * @summary Create a new entity
-     * @request POST:/api/v1/admin/product
-     */
-    create1: (data: Product, params: RequestParams = {}) =>
-      this.request<Product, Product>({
-        path: `/api/v1/admin/product`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetOrders
-     * @summary Get Orders
-     * @request POST:/api/v1/admin/orders
-     */
-    getOrders: (data: OrderFilter, params: RequestParams = {}) =>
-      this.request<PagedOrderResponse, any>({
-        path: `/api/v1/admin/orders`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves all entities from the system
-     *
-     * @tags Investment Resource
-     * @name GetAll1
-     * @summary Get all entities
-     * @request GET:/api/v1/admin/investment
-     */
-    getAll1: (params: RequestParams = {}) =>
-      this.request<InvestmentPlan[], InvestmentPlan[]>({
-        path: `/api/v1/admin/investment`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Creates a new entity in the system
-     *
-     * @tags Investment Resource
-     * @name Create2
-     * @summary Create a new entity
-     * @request POST:/api/v1/admin/investment
-     */
-    create2: (data: InvestmentPlan, params: RequestParams = {}) =>
-      this.request<InvestmentPlan, InvestmentPlan>({
-        path: `/api/v1/admin/investment`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Initialize Application
-     * @name InitApplication
-     * @request POST:/api/v1/admin/init
-     */
-    initApplication: (params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/init`,
-        method: "POST",
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves all entities from the system
-     *
-     * @tags FAQ Resource
-     * @name GetAll2
-     * @summary Get all entities
-     * @request GET:/api/v1/admin/faq
-     */
-    getAll2: (params: RequestParams = {}) =>
-      this.request<Faq[], Faq[]>({
-        path: `/api/v1/admin/faq`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Creates a new entity in the system
-     *
-     * @tags FAQ Resource
-     * @name Create3
-     * @summary Create a new entity
-     * @request POST:/api/v1/admin/faq
-     */
-    create3: (data: Faq, params: RequestParams = {}) =>
-      this.request<Faq, Faq>({
-        path: `/api/v1/admin/faq`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetCashouts
-     * @summary Cashouts List
-     * @request POST:/api/v1/admin/cashouts
-     */
-    getCashouts: (data: CashoutFilterDto, params: RequestParams = {}) =>
-      this.request<CashoutDto[], any>({
-        path: `/api/v1/admin/cashouts`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name CashoutsChangeStatus
-     * @summary Change Cashout status
-     * @request POST:/api/v1/admin/cashout/status
-     */
-    cashoutsChangeStatus: (
-      data: CashoutChangeStatusRequestDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/v1/admin/cashout/status`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * @description Retrieves all entities from the system
-     *
-     * @tags Application Config Resource
-     * @name GetAll3
-     * @summary Get all entities
-     * @request GET:/api/v1/admin/application/config
-     */
-    getAll3: (params: RequestParams = {}) =>
-      this.request<ApplicationConfig[], ApplicationConfig[]>({
-        path: `/api/v1/admin/application/config`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Creates a new entity in the system
-     *
-     * @tags Application Config Resource
-     * @name Create4
-     * @summary Create a new entity
-     * @request POST:/api/v1/admin/application/config
-     */
-    create4: (data: ApplicationConfig, params: RequestParams = {}) =>
-      this.request<ApplicationConfig, ApplicationConfig>({
-        path: `/api/v1/admin/application/config`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name InvestmentAccounts
-     * @summary Investment Accounts
-     * @request POST:/api/v1/admin/account/investments
-     */
-    investmentAccounts: (params: RequestParams = {}) =>
-      this.request<InvestmentAccountDto[], any>({
-        path: `/api/v1/admin/account/investments`,
-        method: "POST",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name InvestmentAccountsByUserId
-     * @summary Investment Accounts by user ID
-     * @request POST:/api/v1/admin/account/investment/{userId}
-     */
-    investmentAccountsByUserId: (userId: number, params: RequestParams = {}) =>
-      this.request<InvestmentAccountDto[], any>({
-        path: `/api/v1/admin/account/investment/${userId}`,
-        method: "POST",
         ...params,
       }),
 
@@ -3665,6 +3241,448 @@ export class Api<
     /**
      * No description
      *
+     * @tags Admin
+     * @name GetWallets1
+     * @summary Get Wallets
+     * @request POST:/api/admin/wallets
+     */
+    getWallets1: (
+      data: FinancialAccountFilterDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<FinancialAccountDto[], any>({
+        path: `/api/admin/wallets`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name WalletWithdrawal
+     * @summary Wallet Withdrawal
+     * @request POST:/api/admin/wallet/withdrawal
+     */
+    walletWithdrawal: (
+      data: WithdrawalAccountRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<TransferResponseDto, any>({
+        path: `/api/admin/wallet/withdrawal`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name TreasuryWallets
+     * @summary Treasury Wallets
+     * @request POST:/api/admin/wallet/treasury
+     */
+    treasuryWallets: (params: RequestParams = {}) =>
+      this.request<FinancialAccountDto[], any>({
+        path: `/api/admin/wallet/treasury`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name WalletTransfer
+     * @summary Wallet Transfer
+     * @request POST:/api/admin/wallet/transfer
+     */
+    walletTransfer: (data: TransferRequestDto, params: RequestParams = {}) =>
+      this.request<TransferResponseDto, any>({
+        path: `/api/admin/wallet/transfer`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name WalletChangeStatus
+     * @summary Change Wallet status
+     * @request POST:/api/admin/wallet/status/change
+     */
+    walletChangeStatus: (
+      data: AccountChangeStatusDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/wallet/status/change`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name WalletDeposit
+     * @summary Wallet Deposit
+     * @request POST:/api/admin/wallet/deposit
+     */
+    walletDeposit: (data: DepositRequestDto, params: RequestParams = {}) =>
+      this.request<TransferResponseDto, any>({
+        path: `/api/admin/wallet/deposit`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetUsers
+     * @summary Get users
+     * @request POST:/api/admin/users
+     */
+    getUsers: (data: UserAccountFilter, params: RequestParams = {}) =>
+      this.request<PageUserAccount, any>({
+        path: `/api/admin/users`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name ChangeUserStatus
+     * @summary Get users
+     * @request POST:/api/admin/user/{userId}/status
+     */
+    changeUserStatus: (
+      userId: number,
+      data: UserChangeStatusDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/user/${userId}/status`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetUserWallets
+     * @summary Get user wallets
+     * @request POST:/api/admin/user/wallets
+     */
+    getUserWallets: (data: UserAccountFilter, params: RequestParams = {}) =>
+      this.request<UserWalletDto[], any>({
+        path: `/api/admin/user/wallets`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetUserWalletByUserId
+     * @summary Get user wallet by userId
+     * @request POST:/api/admin/user/wallet/{userId}
+     */
+    getUserWalletByUserId: (userId: number, params: RequestParams = {}) =>
+      this.request<UserWalletDto, any>({
+        path: `/api/admin/user/wallet/${userId}`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetTrades1
+     * @summary Get Trades
+     * @request POST:/api/admin/trades
+     */
+    getTrades1: (data: TradeFilter, params: RequestParams = {}) =>
+      this.request<PagedTradeResponse, any>({
+        path: `/api/admin/trades`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetTotalWallets
+     * @summary Get total Wallets
+     * @request POST:/api/admin/total/wallets
+     */
+    getTotalWallets: (
+      data: FinancialAccountFilterDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<TotalFinancialAccountResponseDto, any>({
+        path: `/api/admin/total/wallets`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves all entities from the system
+     *
+     * @tags Product Resource
+     * @name GetAll
+     * @summary Get all entities
+     * @request GET:/api/admin/product
+     */
+    getAll: (params: RequestParams = {}) =>
+      this.request<Product[], Product[]>({
+        path: `/api/admin/product`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Creates a new entity in the system
+     *
+     * @tags Product Resource
+     * @name Create1
+     * @summary Create a new entity
+     * @request POST:/api/admin/product
+     */
+    create1: (data: Product, params: RequestParams = {}) =>
+      this.request<Product, Product>({
+        path: `/api/admin/product`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetOrders
+     * @summary Get Orders
+     * @request POST:/api/admin/orders
+     */
+    getOrders: (data: OrderFilter, params: RequestParams = {}) =>
+      this.request<PagedOrderResponse, any>({
+        path: `/api/admin/orders`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves all entities from the system
+     *
+     * @tags Investment Resource
+     * @name GetAll1
+     * @summary Get all entities
+     * @request GET:/api/admin/investment
+     */
+    getAll1: (params: RequestParams = {}) =>
+      this.request<InvestmentPlan[], InvestmentPlan[]>({
+        path: `/api/admin/investment`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Creates a new entity in the system
+     *
+     * @tags Investment Resource
+     * @name Create2
+     * @summary Create a new entity
+     * @request POST:/api/admin/investment
+     */
+    create2: (data: InvestmentPlan, params: RequestParams = {}) =>
+      this.request<InvestmentPlan, InvestmentPlan>({
+        path: `/api/admin/investment`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Initialize Application
+     * @name InitApplication
+     * @request POST:/api/admin/init
+     */
+    initApplication: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/admin/init`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves all entities from the system
+     *
+     * @tags FAQ Resource
+     * @name GetAll2
+     * @summary Get all entities
+     * @request GET:/api/admin/faq
+     */
+    getAll2: (params: RequestParams = {}) =>
+      this.request<Faq[], Faq[]>({
+        path: `/api/admin/faq`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Creates a new entity in the system
+     *
+     * @tags FAQ Resource
+     * @name Create3
+     * @summary Create a new entity
+     * @request POST:/api/admin/faq
+     */
+    create3: (data: Faq, params: RequestParams = {}) =>
+      this.request<Faq, Faq>({
+        path: `/api/admin/faq`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetCashouts
+     * @summary Cashouts List
+     * @request POST:/api/admin/cashouts
+     */
+    getCashouts: (data: CashoutFilterDto, params: RequestParams = {}) =>
+      this.request<CashoutDto[], any>({
+        path: `/api/admin/cashouts`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name CashoutsChangeStatus
+     * @summary Change Cashout status
+     * @request POST:/api/admin/cashout/status
+     */
+    cashoutsChangeStatus: (
+      data: CashoutChangeStatusRequestDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/cashout/status`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description Retrieves all entities from the system
+     *
+     * @tags Application Config Resource
+     * @name GetAll3
+     * @summary Get all entities
+     * @request GET:/api/admin/application/config
+     */
+    getAll3: (params: RequestParams = {}) =>
+      this.request<ApplicationConfig[], ApplicationConfig[]>({
+        path: `/api/admin/application/config`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Creates a new entity in the system
+     *
+     * @tags Application Config Resource
+     * @name Create4
+     * @summary Create a new entity
+     * @request POST:/api/admin/application/config
+     */
+    create4: (data: ApplicationConfig, params: RequestParams = {}) =>
+      this.request<ApplicationConfig, ApplicationConfig>({
+        path: `/api/admin/application/config`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name InvestmentAccounts
+     * @summary Investment Accounts
+     * @request POST:/api/admin/account/investments
+     */
+    investmentAccounts: (params: RequestParams = {}) =>
+      this.request<InvestmentAccountDto[], any>({
+        path: `/api/admin/account/investments`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name InvestmentAccountsByUserId
+     * @summary Investment Accounts by user ID
+     * @request POST:/api/admin/account/investment/{userId}
+     */
+    investmentAccountsByUserId: (userId: number, params: RequestParams = {}) =>
+      this.request<InvestmentAccountDto[], any>({
+        path: `/api/admin/account/investment/${userId}`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Wallet
      * @name GetWalletTransactionDetail
      * @summary Get wallet transaction detail
@@ -3857,224 +3875,6 @@ export class Api<
     getAssets: (params: RequestParams = {}) =>
       this.request<AssetTypeDto[], any>({
         path: `/api/v1/asset`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetWalletsPreUsers
-     * @summary Get Wallets pre user
-     * @request GET:/api/v1/admin/wallets/{userId}
-     */
-    getWalletsPreUsers: (userId: number, params: RequestParams = {}) =>
-      this.request<FinancialAccountDto[], any>({
-        path: `/api/v1/admin/wallets/${userId}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetMarginWallets
-     * @summary Get margin wallets
-     * @request GET:/api/v1/admin/wallets/margin/{from}/{size}
-     */
-    getMarginWallets: (
-      from: number,
-      size: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<FinancialAccountDto[], any>({
-        path: `/api/v1/admin/wallets/margin/${from}/${size}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetCreditWallets
-     * @summary Get credit wallets
-     * @request GET:/api/v1/admin/wallets/credit/{from}/{size}
-     */
-    getCreditWallets: (
-      from: number,
-      size: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<FinancialAccountDto[], any>({
-        path: `/api/v1/admin/wallets/credit/${from}/${size}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetBasketAccounts
-     * @summary Get Basket Accounts
-     * @request GET:/api/v1/admin/wallet/baskets
-     */
-    getBasketAccounts: (params: RequestParams = {}) =>
-      this.request<FinancialAccountDto[], any>({
-        path: `/api/v1/admin/wallet/baskets`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name UserShowcase
-     * @summary User showcase
-     * @request GET:/api/v1/admin/user/showcase
-     */
-    userShowcase: (params: RequestParams = {}) =>
-      this.request<UserAccountShowcase, any>({
-        path: `/api/v1/admin/user/showcase`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetUserCategories
-     * @summary Get user categories
-     * @request GET:/api/v1/admin/user/categories
-     */
-    getUserCategories: (params: RequestParams = {}) =>
-      this.request<UserCategoryDto[], any>({
-        path: `/api/v1/admin/user/categories`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetTodayTradesSummary
-     * @summary Today trade
-     * @request GET:/api/v1/admin/today/trade
-     */
-    getTodayTradesSummary: (params: RequestParams = {}) =>
-      this.request<TradeSummaryByCurrencyDto[], any>({
-        path: `/api/v1/admin/today/trade`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name Showcase
-     * @summary Showcase
-     * @request GET:/api/v1/admin/showcase
-     */
-    showcase: (params: RequestParams = {}) =>
-      this.request<ShowcaseDto, any>({
-        path: `/api/v1/admin/showcase`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Checks if an entity exists by its ID
-     *
-     * @tags Product Resource
-     * @name ExistsById
-     * @summary Check entity existence
-     * @request GET:/api/v1/admin/product/{id}/exists
-     */
-    existsById: (id: number, params: RequestParams = {}) =>
-      this.request<boolean, boolean>({
-        path: `/api/v1/admin/product/${id}/exists`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name GetMe
-     * @summary Get me
-     * @request GET:/api/v1/admin/me
-     */
-    getMe: (params: RequestParams = {}) =>
-      this.request<UserAccountDto, any>({
-        path: `/api/v1/admin/me`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Checks if an entity exists by its ID
-     *
-     * @tags Investment Resource
-     * @name ExistsById1
-     * @summary Check entity existence
-     * @request GET:/api/v1/admin/investment/{id}/exists
-     */
-    existsById1: (id: number, params: RequestParams = {}) =>
-      this.request<boolean, boolean>({
-        path: `/api/v1/admin/investment/${id}/exists`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Checks if an entity exists by its ID
-     *
-     * @tags FAQ Resource
-     * @name ExistsById2
-     * @summary Check entity existence
-     * @request GET:/api/v1/admin/faq/{id}/exists
-     */
-    existsById2: (id: number, params: RequestParams = {}) =>
-      this.request<boolean, boolean>({
-        path: `/api/v1/admin/faq/${id}/exists`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Admin
-     * @name DeliverRequests
-     * @summary Get all delivery requests
-     * @request GET:/api/v1/admin/delivers
-     */
-    deliverRequests: (params: RequestParams = {}) =>
-      this.request<PhysicalDeliveryResponseDto[], any>({
-        path: `/api/v1/admin/delivers`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * @description Checks if an entity exists by its ID
-     *
-     * @tags Application Config Resource
-     * @name ExistsById3
-     * @summary Check entity existence
-     * @request GET:/api/v1/admin/application/config/{id}/exists
-     */
-    existsById3: (id: number, params: RequestParams = {}) =>
-      this.request<boolean, boolean>({
-        path: `/api/v1/admin/application/config/${id}/exists`,
         method: "GET",
         ...params,
       }),
@@ -4456,6 +4256,247 @@ export class Api<
     getPositionDetails: (positionId: number, params: RequestParams = {}) =>
       this.request<PositionDetailsResponse, any>({
         path: `/api/margin/position/${positionId}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetWalletsPreUsers
+     * @summary Get Wallets pre user
+     * @request GET:/api/admin/wallets/{userId}
+     */
+    getWalletsPreUsers: (userId: number, params: RequestParams = {}) =>
+      this.request<FinancialAccountDto[], any>({
+        path: `/api/admin/wallets/${userId}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetMarginWallets
+     * @summary Get margin wallets
+     * @request GET:/api/admin/wallets/margin/{from}/{size}
+     */
+    getMarginWallets: (
+      from: number,
+      size: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<FinancialAccountDto[], any>({
+        path: `/api/admin/wallets/margin/${from}/${size}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetCreditWallets
+     * @summary Get credit wallets
+     * @request GET:/api/admin/wallets/credit/{from}/{size}
+     */
+    getCreditWallets: (
+      from: number,
+      size: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<FinancialAccountDto[], any>({
+        path: `/api/admin/wallets/credit/${from}/${size}`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetBasketAccounts
+     * @summary Get Basket Accounts
+     * @request GET:/api/admin/wallet/baskets
+     */
+    getBasketAccounts: (params: RequestParams = {}) =>
+      this.request<FinancialAccountDto[], any>({
+        path: `/api/admin/wallet/baskets`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name UserShowcase
+     * @summary User showcase
+     * @request GET:/api/admin/user/showcase
+     */
+    userShowcase: (params: RequestParams = {}) =>
+      this.request<UserAccountShowcase, any>({
+        path: `/api/admin/user/showcase`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetUserCategories
+     * @summary Get user categories
+     * @request GET:/api/admin/user/categories
+     */
+    getUserCategories: (params: RequestParams = {}) =>
+      this.request<UserCategoryDto[], any>({
+        path: `/api/admin/user/categories`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetTodayTradesSummary
+     * @summary Today trade
+     * @request GET:/api/admin/today/trade
+     */
+    getTodayTradesSummary: (params: RequestParams = {}) =>
+      this.request<TradeSummaryByCurrencyDto[], any>({
+        path: `/api/admin/today/trade`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetTradesSummary
+     * @request GET:/api/admin/summary
+     */
+    getTradesSummary: (
+      query: {
+        /** @format date */
+        startDate: string;
+        /** @format date */
+        endDate: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<TradeSummaryByCurrencyDto[], any>({
+        path: `/api/admin/summary`,
+        method: "GET",
+        query: query,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name Showcase
+     * @summary Showcase
+     * @request GET:/api/admin/showcase
+     */
+    showcase: (params: RequestParams = {}) =>
+      this.request<ShowcaseDto, any>({
+        path: `/api/admin/showcase`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Checks if an entity exists by its ID
+     *
+     * @tags Product Resource
+     * @name ExistsById
+     * @summary Check entity existence
+     * @request GET:/api/admin/product/{id}/exists
+     */
+    existsById: (id: number, params: RequestParams = {}) =>
+      this.request<boolean, boolean>({
+        path: `/api/admin/product/${id}/exists`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name GetMe
+     * @summary Get me
+     * @request GET:/api/admin/me
+     */
+    getMe: (params: RequestParams = {}) =>
+      this.request<UserAccountDto, any>({
+        path: `/api/admin/me`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Checks if an entity exists by its ID
+     *
+     * @tags Investment Resource
+     * @name ExistsById1
+     * @summary Check entity existence
+     * @request GET:/api/admin/investment/{id}/exists
+     */
+    existsById1: (id: number, params: RequestParams = {}) =>
+      this.request<boolean, boolean>({
+        path: `/api/admin/investment/${id}/exists`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Checks if an entity exists by its ID
+     *
+     * @tags FAQ Resource
+     * @name ExistsById2
+     * @summary Check entity existence
+     * @request GET:/api/admin/faq/{id}/exists
+     */
+    existsById2: (id: number, params: RequestParams = {}) =>
+      this.request<boolean, boolean>({
+        path: `/api/admin/faq/${id}/exists`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name DeliverRequests
+     * @summary Get all delivery requests
+     * @request GET:/api/admin/delivers
+     */
+    deliverRequests: (params: RequestParams = {}) =>
+      this.request<PhysicalDeliveryResponseDto[], any>({
+        path: `/api/admin/delivers`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Checks if an entity exists by its ID
+     *
+     * @tags Application Config Resource
+     * @name ExistsById3
+     * @summary Check entity existence
+     * @request GET:/api/admin/application/config/{id}/exists
+     */
+    existsById3: (id: number, params: RequestParams = {}) =>
+      this.request<boolean, boolean>({
+        path: `/api/admin/application/config/${id}/exists`,
         method: "GET",
         ...params,
       }),

@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react';
-import { FiDatabase, FiInfo, FiBarChart2, FiTrendingUp, FiTrendingDown, FiActivity } from 'react-icons/fi';
+import { FiDatabase, FiInfo, FiBarChart2, FiCalendar, FiUsers, FiActivity, FiTrendingDown, FiTrendingUp } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Layout/Header';
 import KpiCard from '../../components/UI/KpiCard';
 import ProgressBar from '../../components/UI/ProgressBar';
-import { TREASURY } from '../../data/treasury';
 import { OBLIGATION_BREAKDOWN } from '../../data/risk';
-import { Api, PriceQuoteRequest, ShowcaseDto, TradeSummaryByCurrencyDto } from '../../lib/client';
-
-const ASSET_TABLE = [
-  { name: 'طلا (۱۸ عیار)', volume: '۲,۵۰۰ گرم', value: '۸۱,۲۵۰,۰۰۰,۰۰۰', status: 'active' },
-  { name: 'مس کاتد', volume: '۱۵ تن', value: '۶,۳۰۰,۰۰۰,۰۰۰', status: 'active' },
-  { name: 'سکه تمام', volume: '۱۲۵ عدد', value: '۵,۰۰۰,۰۰۰,۰۰۰', status: 'semi' },
-  { name: 'نقره', volume: '۳۵۰ کیلو', value: '۲,۸۰۰,۰۰۰,۰۰۰', status: 'low' },
-];
+import { Api, ShowcaseDto, TradeSummaryByCurrencyDto, FinancialAccountDto } from '../../lib/client';
+import { Wallet } from 'lucide-react';
 
 function AssetStatusBadge({ status }: { status: string }) {
   if (status === 'active')
@@ -23,14 +17,14 @@ function AssetStatusBadge({ status }: { status: string }) {
 }
 
 function TradeSideBadge({ side }: { side: string }) {
-  const styles = {
+  const styles: Record<string, string> = {
     BUY: 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400',
     SELL: 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400',
     LONG: 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400',
     SHORT: 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400',
   };
   
-  const labels = {
+  const labels: Record<string, string> = {
     BUY: 'خرید',
     SELL: 'فروش',
     LONG: 'لانگ',
@@ -38,54 +32,82 @@ function TradeSideBadge({ side }: { side: string }) {
   };
   
   return (
-    <span className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[0.6rem] md:text-xs font-bold ${styles[side as keyof typeof styles] || 'bg-slate-100 text-slate-600'}`}>
-      {labels[side as keyof typeof labels] || side}
+    <span className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[0.6rem] md:text-xs font-bold ${styles[side] || 'bg-slate-100 text-slate-600'}`}>
+      {labels[side] || side}
     </span>
   );
 }
 
+type PeriodType = 'day' | 'week' | 'month';
+
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [showcase, setShowcase] = useState<ShowcaseDto | null>(null);
-  const [goldBuyPrice, setGoldBuyPrice] = useState<number | null>(null);
-  const [goldSellPrice, setGoldSellPrice] = useState<number | null>(null);
   const [tradeSummary, setTradeSummary] = useState<TradeSummaryByCurrencyDto[]>([]);
+  const [treasuryWallets, setTreasuryWallets] = useState<FinancialAccountDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<PeriodType>('day');
 
   const client = new Api();
+
+  const getDateRange = (selectedPeriod: PeriodType): { startDate: string; endDate: string } => {
+    const now = new Date();
+    const start = new Date();
+    
+    switch (selectedPeriod) {
+      case 'day':
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        const currentDay = now.getDay();
+        const daysFromSaturday = currentDay === 6 ? 0 : (currentDay + 1) % 7;
+        start.setDate(now.getDate() - daysFromSaturday);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        break;
+    }
+    
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const end = new Date(now);
+    end.setDate(end.getDate() + 1);
+    end.setHours(0, 0, 0, 0);
+
+    return {
+      startDate: formatDate(start),
+      endDate: formatDate(end)
+    };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Authenticate first if needed
-        // await client.rest.authenticate({ 
-        //   username: '09372689372', 
-        //   password: 'Milad@102030' 
-        // });
-
-        // Fetch showcase data
-        const showcaseRes = await client.api.showcase();
-        setShowcase(showcaseRes.data);
-
-        // Fetch gold prices
-        const buyRequest: PriceQuoteRequest = { assetCode: 'GOLD', amount: 1 };
-        const sellRequest: PriceQuoteRequest = { assetCode: 'GOLD', amount: 1 };
+        const { startDate, endDate } = getDateRange(period);
         
-        const [buyRes, sellRes, tradeSummaryRes] = await Promise.all([
-          client.api.getBuyPriceQuote(buyRequest),
-          client.api.getSellPriceQuote(sellRequest),
-          client.api.getTodayTradesSummary().catch(() => ({ data: [] }))
+        const [showcaseRes, tradeSummaryRes, treasuryRes] = await Promise.all([
+          client.api.showcase(),
+          client.api.getTradesSummary({ startDate, endDate }).catch(() => ({ data: [] })),
+          client.api.treasuryWallets().catch(() => ({ data: [] }))
         ]);
 
-        if (buyRes.data?.data?.finalPrice) {
-          setGoldBuyPrice(buyRes.data.data.finalPrice);
-        }
-        if (sellRes.data?.data?.finalPrice) {
-          setGoldSellPrice(sellRes.data.data.finalPrice);
-        }
+        setShowcase(showcaseRes.data);
+        
         if (tradeSummaryRes.data) {
           setTradeSummary(tradeSummaryRes.data);
+        }
+        
+        if (treasuryRes.data) {
+          setTreasuryWallets(treasuryRes.data);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -96,55 +118,96 @@ export default function DashboardPage() {
 
     fetchData();
 
-    // Refresh prices every 30 seconds
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [period]);
 
-  const treasuryTotal = TREASURY.totalLiquidity;
-  const reservedPercent = Math.round((TREASURY.reserved / treasuryTotal) * 100);
-  const availablePercent = Math.round((TREASURY.available / treasuryTotal) * 100);
-  const alertPercent = Math.round((TREASURY.alertThreshold / treasuryTotal) * 100);
-
-  // Calculate dynamic values from API
+  // مقادیر از showcase
   const volumeOfTransaction = showcase?.volumeOfTransaction || 0;
-  const spreedAmount = showcase?.spreedAmount || 0;
   const allUserCount = showcase?.allUserCount || 0;
   const openMarginCount = showcase?.openMarginCount || 0;
   const feeCount = showcase?.feeCount || 0;
   const alarmMarginCount = showcase?.alarmMarginCount || 0;
+  const goldBuyPrice = showcase?.goldBuyPrice || 0;
+  const goldSellPrice = showcase?.goldSellPrice || 0;
 
-  // Calculate trade summary totals
-  const totalTradesToday = tradeSummary.reduce((sum, item) => sum + (item.tradeCount || 0), 0);
-  const totalVolumeToday = tradeSummary.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
-  const totalNotionalToday = tradeSummary.reduce((sum, item) => sum + (item.totalNotional || 0), 0);
-  const totalFeeToday = tradeSummary.reduce((sum, item) => sum + (item.totalFee || 0), 0);
+  // محاسبات معاملات
+  const buyTrades = tradeSummary.filter(item => item.side === 'BUY' || item.side === 'LONG');
+  const sellTrades = tradeSummary.filter(item => item.side === 'SELL' || item.side === 'SHORT');
 
-  // Format numbers to Persian
-  const formatNumber = (num: number) => {
+  const totalBuyNotional = buyTrades.reduce((sum, item) => sum + (item.totalNotional || 0), 0);
+  const totalSellNotional = sellTrades.reduce((sum, item) => sum + (item.totalNotional || 0), 0);
+  const totalBuyQuantity = buyTrades.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
+  const totalSellQuantity = sellTrades.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
+  const totalTradesCount = tradeSummary.reduce((sum, item) => sum + (item.tradeCount || 0), 0);
+  const totalFeeAll = tradeSummary.reduce((sum, item) => sum + (item.totalFee || 0), 0);
+  const netRequired = totalBuyQuantity - totalSellQuantity;
+
+  // محاسبات خزانه
+  const totalBalance = treasuryWallets.reduce((sum, wallet) => sum + (wallet.balances?.balance || 0), 0);
+  const totalAvailable = treasuryWallets.reduce((sum, wallet) => sum + (wallet.balances?.availableBalance || 0), 0);
+  const totalBlocked = treasuryWallets.reduce((sum, wallet) => sum + (wallet.balances?.blockBalance || 0), 0);
+  
+  // گروه‌بندی بر اساس ارز
+  const walletsByCurrency = treasuryWallets.reduce((acc, wallet) => {
+    const currencyCode = wallet.currency?.code || 'نامشخص';
+    if (!acc[currencyCode]) {
+      acc[currencyCode] = {
+        currencyName: wallet.currency?.name || currencyCode,
+        symbol: wallet.currency?.symbol || '',
+        unit: wallet.currency?.unit || '',
+        totalBalance: 0,
+        totalAvailable: 0,
+        totalBlocked: 0,
+        accounts: []
+      };
+    }
+    acc[currencyCode].totalBalance += wallet.balances?.balance || 0;
+    acc[currencyCode].totalAvailable += wallet.balances?.availableBalance || 0;
+    acc[currencyCode].totalBlocked += wallet.balances?.blockBalance || 0;
+    acc[currencyCode].accounts.push(wallet);
+    return acc;
+  }, {} as Record<string, {
+    currencyName: string;
+    symbol: string;
+    unit: string;
+    totalBalance: number;
+    totalAvailable: number;
+    totalBlocked: number;
+    accounts: FinancialAccountDto[];
+  }>);
+
+  // Format numbers
+  const formatNumber = (num: number): string => {
     return num.toLocaleString('fa-IR');
   };
 
-  const formatCurrency = (num: number) => {
-    return (num).toLocaleString('fa-IR');
+  const formatCurrency = (num: number): string => {
+    return (num / 1000000).toLocaleString('fa-IR');
   };
 
-  const formatDecimal = (num: number, decimals: number = 2) => {
-    return num.toLocaleString('fa-IR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  const formatDecimal = (num: number, decimals: number = 4): string => {
+    return num.toLocaleString('fa-IR', { 
+      minimumFractionDigits: decimals, 
+      maximumFractionDigits: decimals 
+    });
   };
 
-  // Calculate price change (mock - you can implement real calculation)
-  const calculateChange = (current: number | null) => {
-    if (!current) return { value: '۰٪', positive: true };
-    // This is a placeholder - you should compare with previous price
-    return { value: '+۱.۲٪', positive: true };
+  const formatBalance = (num: number): string => {
+    if (num >= 1000000000000) {
+      return `${(num).toLocaleString('fa-IR', { maximumFractionDigits: 2 })} هزار میلیارد`;
+    }
+    if (num >= 1000000000) {
+      return `${(num).toLocaleString('fa-IR', { maximumFractionDigits: 2 })} میلیارد`;
+    }
+    if (num >= 1000000) {
+      return `${(num).toLocaleString('fa-IR', { maximumFractionDigits: 2 })} میلیون`;
+    }
+    return num.toLocaleString('fa-IR');
   };
 
-  const goldChange = calculateChange(goldBuyPrice);
-
-  // Get color based on product code
-  const getProductColor = (code: string) => {
-    const colors: { [key: string]: string } = {
+  const getProductColor = (code: string): string => {
+    const colors: Record<string, string> = {
       'SPOT': '#0d59f2',
       'FORWARD_T1': '#f59e0b',
       'FORWARD_T2': '#10b981',
@@ -153,8 +216,33 @@ export default function DashboardPage() {
     return colors[code] || '#6b7280';
   };
 
-  // Calculate max notional for bar chart scaling
-  const maxNotional = Math.max(...tradeSummary.map(item => item.totalNotional || 0), 1);
+  const periodTitle = period === 'day' ? 'امروز' : period === 'week' ? 'این هفته' : 'این ماه';
+
+  const getProductLabel = (code: string): string => {
+    const labels: Record<string, string> = {
+      'SPOT': 'نقدی',
+      'FORWARD_T1': 'فردایی T+1',
+      'FORWARD_T2': 'فردایی T+2',
+      'PERP': 'دائمی',
+    };
+    return labels[code] || code;
+  };
+
+  const getAccountTypeLabel = (type?: string): string => {
+    const labels: Record<string, string> = {
+      'OPERATIONAL': 'عملیاتی',
+      'RESERVE': 'ذخیره',
+      'TRADING': 'معاملاتی',
+    };
+    return labels[type || ''] || type || 'عمومی';
+  };
+
+  const getAccountStatusBadge = (status?: string) => {
+    if (status === 'ACTIVE') {
+      return <span className="bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[0.6rem]">فعال</span>;
+    }
+    return <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[0.6rem]">{status}</span>;
+  };
 
   return (
     <>
@@ -162,6 +250,7 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="mx-auto max-w-[1600px] space-y-5 md:space-y-7">
 
+          {/* KPI Cards */}
           <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
             <KpiCard 
               label="حجم معاملات" 
@@ -169,297 +258,361 @@ export default function DashboardPage() {
               unit="میلیون ریال" 
             />
             <KpiCard 
-              label="سود اسپرد" 
-              value={formatCurrency(spreedAmount)} 
-              unit="میلیون ریال" 
-              change="-۵%" 
-              changePositive={false} 
-            />
-            <KpiCard 
               label="معامله‌گران" 
               value={formatNumber(allUserCount)} 
               unit="نفر" 
-              change="+۳%" 
-              changePositive 
+              onClick={() => navigate('/users')}
+              clickable
             />
             <KpiCard 
-              label="تعهد باز" 
+              label="تعهدات باز" 
               value={formatNumber(openMarginCount)} 
-              change="+۸%" 
-              changePositive 
+              unit="پوزیشن"
             />
-            <KpiCard 
+            {/* <KpiCard 
               label="مجموع کارمزد" 
               value={formatCurrency(feeCount)} 
               unit="میلیون ریال" 
-              change="+۱۵%" 
-              changePositive 
-            />
+            /> */}
             <KpiCard 
               label="قیمت طلا (خرید)" 
               value={goldBuyPrice ? formatNumber(Math.round(goldBuyPrice)) : '---'} 
               unit="ریال" 
-              change={goldChange.value} 
-              changePositive={goldChange.positive} 
             />
             <KpiCard 
               label="قیمت طلا (فروش)" 
               value={goldSellPrice ? formatNumber(Math.round(goldSellPrice)) : '---'} 
               unit="ریال" 
-              change="-۰.۵٪" 
-              changePositive={false} 
             />
             <KpiCard 
               label="هشدار مارجین" 
               value={formatNumber(alarmMarginCount)} 
               unit="حساب" 
-              change="+۲ مورد" 
-              changePositive={false} 
             />
           </section>
 
-          {/* New Section: Today's Trades Summary */}
+          {/* گزارش معاملات */}
           <section className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl p-4 md:p-6">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
               <div className="flex items-center gap-3">
-                <FiActivity className="text-primary text-2xl md:text-3xl" />
+                <div className="bg-primary/10 p-2 rounded-xl">
+                  <FiActivity className="text-primary text-xl md:text-2xl" />
+                </div>
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-white text-base md:text-lg">
-                    گزارش معاملات امروز
+                    گزارش معاملات
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     تفکیک بر اساس محصول و جهت معامله
                   </p>
                 </div>
               </div>
               
-              {/* Summary Cards */}
-              <div className="hidden md:flex gap-4">
-                <div className="text-center">
-                  <div className="text-sm text-slate-500">کل معاملات</div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
-                    {formatNumber(totalTradesToday)}
-                  </div>
-                </div>
-                <div className="w-px bg-border-light dark:bg-border-dark" />
-                <div className="text-center">
-                  <div className="text-sm text-slate-500">حجم کل</div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
-                    {formatDecimal(totalVolumeToday, 4)}
-                  </div>
-                </div>
-                <div className="w-px bg-border-light dark:bg-border-dark" />
-                <div className="text-center">
-                  <div className="text-sm text-slate-500">ارزش کل (میلیون ریال)</div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white">
-                    {formatCurrency(totalNotionalToday)}
-                  </div>
-                </div>
-                <div className="w-px bg-border-light dark:bg-border-dark" />
-                <div className="text-center">
-                  <div className="text-sm text-slate-500">کارمزد کل</div>
-                  <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(totalFeeToday)}
-                  </div>
-                </div>
+              <div className="flex gap-1 bg-slate-100 dark:bg-background-dark p-1 rounded-xl border border-border-light dark:border-border-dark self-start">
+                {[
+                  { key: 'day', label: 'امروز' },
+                  { key: 'week', label: 'هفتگی' },
+                  { key: 'month', label: 'ماهانه' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setPeriod(key as PeriodType)}
+                    className={`px-4 py-1.5 md:py-2 text-xs font-bold rounded-lg transition-all ${
+                      period === key 
+                        ? 'bg-primary text-white shadow-sm' 
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-border-dark'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Mobile Summary */}
-            <div className="grid grid-cols-2 gap-3 mb-4 md:hidden">
-              <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3">
-                <div className="text-xs text-slate-500 mb-1">کل معاملات</div>
-                <div className="text-base font-black text-slate-900 dark:text-white">
-                  {formatNumber(totalTradesToday)}
+            {/* کارت نیاز به تامین */}
+            {tradeSummary.length > 0 && (
+              <div className={`p-4 rounded-xl mb-5 border ${
+                netRequired > 0 
+                  ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800' 
+                  : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {netRequired > 0 ? (
+                    <FiTrendingUp className="text-amber-600 text-lg" />
+                  ) : (
+                    <FiTrendingDown className="text-emerald-600 text-lg" />
+                  )}
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    وضعیت تامین {periodTitle}
+                  </span>
                 </div>
+                {netRequired > 0 ? (
+                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                    شما باید{' '}
+                    <span className="font-black text-amber-600 dark:text-amber-400 text-base">
+                      {formatDecimal(netRequired, 4)}
+                    </span>
+                    {' '}واحد طلا <strong>تامین</strong> کنید
+                    <span className="text-xs text-slate-500 block mt-1.5">
+                      خرید: {formatDecimal(totalBuyQuantity, 4)} | فروش: {formatDecimal(totalSellQuantity, 4)}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                    موجودی کافی است.{' '}
+                    <span className="font-black text-emerald-600 dark:text-emerald-400 text-base">
+                      {formatDecimal(Math.abs(netRequired), 4)}
+                    </span>
+                    {' '}واحد <strong>مازاد</strong> دارید
+                    <span className="text-xs text-slate-500 block mt-1.5">
+                      خرید: {formatDecimal(totalBuyQuantity, 4)} | فروش: {formatDecimal(totalSellQuantity, 4)}
+                    </span>
+                  </p>
+                )}
               </div>
-              <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3">
-                <div className="text-xs text-slate-500 mb-1">حجم کل</div>
-                <div className="text-base font-black text-slate-900 dark:text-white">
-                  {formatDecimal(totalVolumeToday, 4)}
-                </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3">
-                <div className="text-xs text-slate-500 mb-1">ارزش کل (م. ریال)</div>
-                <div className="text-base font-black text-slate-900 dark:text-white">
-                  {formatCurrency(totalNotionalToday)}
-                </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3">
-                <div className="text-xs text-slate-500 mb-1">کارمزد کل</div>
-                <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(totalFeeToday)}
-                </div>
-              </div>
-            </div>
+            )}
 
-            {/* Trade Summary Table & Chart */}
             {tradeSummary.length > 0 ? (
-              <div className="space-y-4">
-                {/* Horizontal Bar Chart */}
-                <div className="space-y-3">
-                  {tradeSummary.map((item, index) => {
-                    const percentWidth = maxNotional > 0 ? ((item.totalNotional || 0) / maxNotional) * 100 : 0;
-                    const productColor = getProductColor(item.productCode || '');
-                    
-                    return (
-                      <div key={index} className="group">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                              {item.productCode}
-                            </span>
-                            <TradeSideBadge side={item.side || ''} />
-                          </div>
-                          <span className="text-xs text-slate-500">
-                            {formatCurrency(item.totalNotional || 0)} م.ریال
-                          </span>
-                        </div>
-                        <div className="relative h-8 bg-slate-100 dark:bg-background-dark rounded-lg overflow-hidden">
-                          <div 
-                            className="h-full rounded-lg transition-all duration-500 ease-out group-hover:opacity-80"
-                            style={{ 
-                              width: `${percentWidth}%`,
-                              backgroundColor: productColor,
-                              opacity: 0.8
-                            }}
-                          />
-                          <div className="absolute inset-0 flex items-center px-3 text-xs">
-                            <span className="font-bold text-slate-700 dark:text-slate-200">
-                              {formatDecimal(item.totalQuantity || 0, 4)} 
-                              <span className="font-normal text-slate-500 mr-2">
-                                | {formatNumber(item.tradeCount || 0)} معامله
-                              </span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3 text-center">
+                    <div className="text-xs text-slate-500 mb-1">تعداد معاملات</div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {formatNumber(totalTradesCount)}
+                    </div>
+                  </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-3 text-center">
+                    <div className="text-xs text-slate-500 mb-1">حجم خرید</div>
+                    <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                      {formatDecimal(totalBuyQuantity, 4)}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-950/20 rounded-xl p-3 text-center">
+                    <div className="text-xs text-slate-500 mb-1">حجم فروش</div>
+                    <div className="text-lg font-black text-red-600 dark:text-red-400">
+                      {formatDecimal(totalSellQuantity, 4)}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3 text-center">
+                    <div className="text-xs text-slate-500 mb-1">اختلاف</div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {formatDecimal((totalBuyQuantity - totalSellQuantity))}
+                      <span className="text-xs font-normal mr-1">م.ر</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Detailed Table */}
-                <div className="mt-6 overflow-x-auto">
+                <div className="overflow-x-auto rounded-xl border border-border-light dark:border-border-dark">
                   <table className="w-full text-right text-xs md:text-sm">
-                    <thead className="border-b border-border-light dark:border-border-dark text-slate-500">
+                    <thead className="bg-slate-50 dark:bg-background-dark/50 text-slate-500">
                       <tr>
-                        <th className="px-3 md:px-4 py-2 font-medium">محصول</th>
-                        <th className="px-3 md:px-4 py-2 font-medium">جهت</th>
-                        <th className="px-3 md:px-4 py-2 font-medium">تعداد معاملات</th>
-                        <th className="px-3 md:px-4 py-2 font-medium">حجم کل</th>
-                        <th className="px-3 md:px-4 py-2 font-medium">ارزش کل (م.ریال)</th>
-                        <th className="px-3 md:px-4 py-2 font-medium">کارمزد (م.ریال)</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">محصول</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">جهت</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">تعداد</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">حجم کل</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">ارزش کل (م.ریال)</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">میانگین قیمت</th>
+                        <th className="px-3 md:px-4 py-2.5 font-medium">کارمزد (م.ریال)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                      {tradeSummary.map((item, index) => (
-                        <tr key={index} className="hover:bg-slate-50 dark:hover:bg-background-dark/40 transition-colors">
-                          <td className="px-3 md:px-4 py-3 font-medium text-slate-900 dark:text-white">
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: getProductColor(item.productCode || '') }}
-                              />
-                              {item.productCode}
-                            </div>
-                          </td>
-                          <td className="px-3 md:px-4 py-3">
-                            <TradeSideBadge side={item.side || ''} />
-                          </td>
-                          <td className="px-3 md:px-4 py-3 text-slate-700 dark:text-slate-300">
-                            {formatNumber(item.tradeCount || 0)}
-                          </td>
-                          <td className="px-3 md:px-4 py-3 text-slate-700 dark:text-slate-300">
-                            {formatDecimal(item.totalQuantity || 0, 4)}
-                          </td>
-                          <td className="px-3 md:px-4 py-3 font-bold text-slate-900 dark:text-white">
-                            {formatCurrency(item.totalNotional || 0)}
-                          </td>
-                          <td className="px-3 md:px-4 py-3 text-emerald-600 dark:text-emerald-400 font-medium">
-                            {formatCurrency(item.totalFee || 0)}
-                          </td>
-                        </tr>
-                      ))}
+                      {tradeSummary.map((item, index) => {
+                        const avgPrice = item.totalQuantity && item.totalQuantity > 0 
+                          ? (item.totalNotional || 0) / (item.totalQuantity || 1) 
+                          : 0;
+                        
+                        return (
+                          <tr key={index} className="hover:bg-slate-50 dark:hover:bg-background-dark/40 transition-colors">
+                            <td className="px-3 md:px-4 py-3 font-medium text-slate-900 dark:text-white">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                                  style={{ backgroundColor: getProductColor(item.productCode || '') }}
+                                />
+                                <span>{getProductLabel(item.productCode || '')}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 md:px-4 py-3">
+                              <TradeSideBadge side={item.side || ''} />
+                            </td>
+                            <td className="px-3 md:px-4 py-3 text-slate-700 dark:text-slate-300">
+                              {formatNumber(item.tradeCount || 0)}
+                            </td>
+                            <td className="px-3 md:px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+                              {formatDecimal(item.totalQuantity || 0, 4)}
+                            </td>
+                            <td className="px-3 md:px-4 py-3 font-bold text-slate-900 dark:text-white">
+                              {formatCurrency(item.totalNotional || 0)}
+                            </td>
+                            <td className="px-3 md:px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">
+                              {formatNumber(Math.round(avgPrice))}
+                            </td>
+                            <td className="px-3 md:px-4 py-3 text-slate-700 dark:text-slate-300 text-xs">
+                              {formatCurrency(item.totalFee || 0)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
-                    <tfoot className="border-t-2 border-border-light dark:border-border-dark">
-                      <tr className="bg-slate-50 dark:bg-background-dark/50 font-bold">
-                        <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white" colSpan={2}>
-                          جمع کل
+                    <tfoot>
+                      <tr className="border-t-2 border-border-light dark:border-border-dark bg-slate-50 dark:bg-background-dark/50 font-bold">
+                        <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white" colSpan={3}>جمع کل</td>
+                        <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white">
+                          {formatDecimal(totalBuyQuantity + totalSellQuantity, 4)}
                         </td>
                         <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white">
-                          {formatNumber(totalTradesToday)}
+                          {formatCurrency(totalBuyNotional + totalSellNotional)}
                         </td>
+                        <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white">-</td>
                         <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white">
-                          {formatDecimal(totalVolumeToday, 4)}
+                          {formatCurrency(totalFeeAll)}
                         </td>
-                        <td className="px-3 md:px-4 py-3 text-slate-900 dark:text-white">
-                          {formatCurrency(totalNotionalToday)}
+                      </tr>
+                      <tr className="bg-emerald-50/50 dark:bg-emerald-950/10 font-bold">
+                        <td className="px-3 md:px-4 py-2 text-emerald-600 dark:text-emerald-400" colSpan={3}>
+                          جمع خرید (BUY + LONG)
                         </td>
-                        <td className="px-3 md:px-4 py-3 text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(totalFeeToday)}
+                        <td className="px-3 md:px-4 py-2 text-emerald-600 dark:text-emerald-400">
+                          {formatDecimal(totalBuyQuantity, 4)}
                         </td>
+                        <td className="px-3 md:px-4 py-2 text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(totalBuyNotional)}
+                        </td>
+                        <td className="px-3 md:px-4 py-2" colSpan={2}></td>
+                      </tr>
+                      <tr className="bg-red-50/50 dark:bg-red-950/10 font-bold">
+                        <td className="px-3 md:px-4 py-2 text-red-600 dark:text-red-400" colSpan={3}>
+                          جمع فروش (SELL + SHORT)
+                        </td>
+                        <td className="px-3 md:px-4 py-2 text-red-600 dark:text-red-400">
+                          {formatDecimal(totalSellQuantity, 4)}
+                        </td>
+                        <td className="px-3 md:px-4 py-2 text-red-600 dark:text-red-400">
+                          {formatCurrency(totalSellNotional)}
+                        </td>
+                        <td className="px-3 md:px-4 py-2" colSpan={2}></td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-400">
-                <FiBarChart2 className="text-4xl mx-auto mb-3 opacity-50" />
-                <p className="text-sm">امروز معامله‌ای ثبت نشده است</p>
+              <div className="text-center py-16 text-slate-400">
+                <FiBarChart2 className="text-5xl mx-auto mb-4 opacity-30" />
+                <p className="text-sm font-medium">در این بازه معامله‌ای ثبت نشده است</p>
+                <p className="text-xs mt-1 opacity-70">با تغییر بازه زمانی، داده‌های بیشتری مشاهده کنید</p>
               </div>
             )}
           </section>
 
+          {/* خزانه و ریسک تعهدات */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
-            <div className="lg:col-span-8 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl p-4 md:p-5 flex flex-col">
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h3 className="font-bold text-slate-900 dark:text-white text-base md:text-lg">
-                  روند حجم و درآمد
-                  <span className="text-xs md:text-sm font-normal text-slate-500 mr-2">طلا / مس</span>
-                </h3>
-                <div className="flex gap-1 bg-slate-100 dark:bg-background-dark p-1 rounded-xl border border-border-light dark:border-border-dark">
-                  {['روزانه', 'هفتگی', 'ماهانه'].map((label, i) => (
-                    <button
-                      key={label}
-                      className={`px-3 md:px-4 py-1 md:py-1.5 text-xs font-bold rounded-lg transition-all ${
-                        i === 0 ? 'bg-primary text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-border-dark'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+            {/* موجودی خزانه */}
+            <div className="lg:col-span-7 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl p-4 md:p-6">
+              <div className="flex items-center gap-2 md:gap-3 mb-5">
+                <div className="bg-primary/10 p-2 rounded-xl">
+                  <Wallet className="text-primary text-xl md:text-2xl" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base md:text-lg">موجودی خزانه</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">وضعیت کیف پول‌های بانکی</p>
                 </div>
               </div>
-              <div className="relative w-full h-[180px] md:h-[240px] mt-2">
-                <svg className="w-full h-full" viewBox="0 0 700 200" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="gradChart" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0d59f2" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#0d59f2" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0,160 Q80,120 160,140 T320,80 T480,100 T620,30 L620,200 L0,200 Z" fill="url(#gradChart)" />
-                  <path d="M0,160 Q80,120 160,140 T320,80 T480,100 T620,30" stroke="#0d59f2" strokeWidth="3" fill="none" strokeLinecap="round" />
-                  <path d="M0,180 Q100,150 220,170 T420,120 T620,80" stroke="#f59e0b" strokeWidth="2.5" fill="none" strokeDasharray="5 3" opacity="0.9" />
-                  {[40, 90, 140].map(y => (
-                    <line key={y} x1="0" y1={y} x2="700" y2={y} stroke="#cbd5e1" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
-                  ))}
-                </svg>
-              </div>
-              <div className="flex gap-4 mt-3">
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <div className="w-4 h-1 rounded-full bg-primary" />
-                  طلا
+
+              {treasuryWallets.length > 0 ? (
+                <div className="space-y-4">
+                  {/* خلاصه کلی */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-slate-50 dark:bg-background-dark rounded-xl p-3 text-center">
+                      <div className="text-xs text-slate-500 mb-1">موجودی کل</div>
+                      <div className="text-base font-black text-slate-900 dark:text-white">
+                        {formatBalance(totalBalance)}
+                      </div>
+                    </div>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-3 text-center">
+                      <div className="text-xs text-slate-500 mb-1">قابل برداشت</div>
+                      <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                        {formatBalance(totalAvailable)}
+                      </div>
+                    </div>
+                    <div className="bg-amber-50 dark:bg-amber-950/20 rounded-xl p-3 text-center">
+                      <div className="text-xs text-slate-500 mb-1">مسدود شده</div>
+                      <div className="text-base font-black text-amber-600 dark:text-amber-400">
+                        {formatBalance(totalBlocked)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* تفکیک بر اساس ارز */}
+                  <div className="space-y-3">
+                    {Object.entries(walletsByCurrency).map(([currencyCode, data]) => (
+                      <div key={currencyCode} className="border border-border-light dark:border-border-dark rounded-xl overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-background-dark/50 px-4 py-2.5 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white text-sm">
+                              {data.currencyName}
+                            </span>
+                            {data.symbol && (
+                              <span className="text-xs text-slate-500">({data.symbol})</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs">
+                            <span className="text-slate-600 dark:text-slate-400">
+                              موجودی: <strong>{formatBalance(data.totalBalance)}</strong>
+                            </span>
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              قابل برداشت: <strong>{formatBalance(data.totalAvailable)}</strong>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-border-light dark:divide-border-dark">
+                          {data.accounts.map((account, idx) => (
+                            <div key={account.id || idx} className="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-background-dark/30 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    {account.name || account.description || 'بدون نام'}
+                                  </span>
+                                  {account.accountNumber && (
+                                    <span className="text-[0.6rem] text-slate-400 bg-slate-100 dark:bg-background-dark px-1.5 py-0.5 rounded">
+                                      {account.accountNumber}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {account.type && (
+                                    <span className="text-[0.6rem] text-slate-500 bg-slate-100 dark:bg-background-dark px-1.5 py-0.5 rounded">
+                                      {account.type.description}
+                                    </span>
+                                  )}
+                                  {account.status?.description}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 text-xs">
+                                <span className="text-slate-700 dark:text-slate-300">
+                                  {formatBalance(account.balances?.balance || 0)}
+                                </span>
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  {formatBalance(account.balances?.availableBalance || 0)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <div className="w-4 h-0.5 rounded-full bg-amber-500" style={{ borderTop: '2px dashed #f59e0b', background: 'none' }} />
-                  مس
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  <FiDatabase className="text-4xl mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">اطلاعات خزانه در دسترس نیست</p>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div className="lg:col-span-4 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl p-6 md:p-8 flex flex-col">
+            {/* ریسک تعهدات */}
+            <div className="lg:col-span-5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl p-6 md:p-8 flex flex-col">
               <h3 className="font-black text-slate-900 dark:text-white text-base md:text-lg mb-6">وضعیت ریسک تعهدات</h3>
               <div className="flex flex-col items-center justify-center flex-1 space-y-6">
                 <div
@@ -487,58 +640,6 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
-            <div className="lg:col-span-7 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 md:p-5">
-                <h3 className="font-bold text-slate-900 dark:text-white text-sm md:text-base">تفکیک معاملات بر اساس دارایی</h3>
-                <button className="text-xs bg-primary/10 text-primary px-3 md:px-4 py-1.5 md:py-2 rounded-xl font-semibold hover:bg-primary/20 transition-colors">
-                  خروجی اکسل
-                </button>
-              </div>
-              <div className="overflow-x-auto px-2 pb-2">
-                <table className="w-full text-right text-xs md:text-sm">
-                  <thead className="border-b border-border-light dark:border-border-dark text-slate-500">
-                    <tr>
-                      <th className="px-3 md:px-5 py-2 md:py-3 font-medium">نام دارایی</th>
-                      <th className="px-3 md:px-5 py-2 md:py-3 font-medium">حجم</th>
-                      <th className="px-3 md:px-5 py-2 md:py-3 font-medium">ارزش کل (ریال)</th>
-                      <th className="px-3 md:px-5 py-2 md:py-3 font-medium">وضعیت</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                    {ASSET_TABLE.map(row => (
-                      <tr key={row.name} className="hover:bg-slate-50 dark:hover:bg-background-dark/40 transition-colors">
-                        <td className="px-3 md:px-5 py-3 md:py-4 font-medium text-slate-900 dark:text-white">{row.name}</td>
-                        <td className="px-3 md:px-5 py-3 md:py-4 text-slate-600 dark:text-slate-300">{row.volume}</td>
-                        <td className="px-3 md:px-5 py-3 md:py-4 text-xs text-slate-700 dark:text-slate-300">{row.value}</td>
-                        <td className="px-3 md:px-5 py-3 md:py-4"><AssetStatusBadge status={row.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl p-4 md:p-6">
-              <div className="flex items-center gap-2 md:gap-3 mb-5">
-                <FiDatabase className="text-primary text-2xl md:text-3xl" />
-                <h3 className="font-bold text-slate-900 dark:text-white text-base md:text-lg">موجودی خزانه</h3>
-              </div>
-              <div className="space-y-4 md:space-y-5">
-                <ProgressBar label="نقدینگی کل" value="۲۵۰,۰۰۰ میلیارد" percent={100} color="primary" />
-                <ProgressBar label="رزرو شده" value="۴۵,۰۰۰ میلیارد" percent={reservedPercent} color="blue" />
-                <ProgressBar label="قابل برداشت" value="۱۸۵,۰۰۰ میلیارد" percent={availablePercent} color="emerald" />
-                <ProgressBar label="حد هشدار" value="۲۰,۰۰۰ میلیارد" percent={alertPercent} color="rose" />
-              </div>
-              <div className="mt-5 flex items-center gap-2 md:gap-3 text-xs md:text-sm bg-primary/10 p-2 md:p-3 rounded-xl">
-                <FiInfo className="text-primary text-lg md:text-xl" />
-                <span className="text-slate-700 dark:text-slate-200">
-                  نسبت پوشش ریسک: {TREASURY.riskCoverageRatio.toLocaleString('fa-IR')} (ایمن)
-                </span>
               </div>
             </div>
           </section>

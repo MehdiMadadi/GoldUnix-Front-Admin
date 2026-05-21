@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { 
-  FiFileText, 
-  FiRefreshCw, 
-  FiTrendingUp, 
-  FiBarChart2, 
-  FiFilter, 
-  FiDownload 
+import {
+  FiFileText,
+  FiRefreshCw,
+  FiTrendingUp,
+  FiBarChart2,
+  FiFilter,
+  FiDownload
 } from 'react-icons/fi';
 import Header from '../../components/Layout/Header';
 import KpiCard from '../../components/UI/KpiCard';
@@ -92,20 +92,18 @@ function SubTabBar<T extends string>({
           <button
             key={tab.key}
             onClick={() => onChange(tab.key)}
-            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
-              active === tab.key
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${active === tab.key
                 ? 'bg-primary text-white shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
+              }`}
           >
             <IconComponent size={14} className={active === tab.key ? '' : (tab.color ?? '')} />
             {tab.label}
             {counts && counts[tab.key] != null && (
-              <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-full font-bold ${
-                active === tab.key 
-                  ? 'bg-white/20 text-white' 
+              <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-full font-bold ${active === tab.key
+                  ? 'bg-white/20 text-white'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}>
+                }`}>
                 {(counts[tab.key] as number).toLocaleString('fa-IR')}
               </span>
             )}
@@ -119,7 +117,7 @@ function SubTabBar<T extends string>({
 export default function TradesPage() {
   const [activeTab, setActiveTab] = useState<MainTab>('orders');
   const [orderSubTab, setOrderSubTab] = useState<OrderSubTab>('OPEN');
-  const [tradeSubTab, setTradeSubTab] = useState<TradeSubTab>('cash');
+  const [tradeSubTab, setTradeSubTab] = useState<TradeSubTab>('SPOT_GOLD');
   const [positionSubTab, setPositionSubTab] = useState<PositionSubTab>('all');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -165,7 +163,7 @@ export default function TradesPage() {
       const response = await client.api.getOrders({
         from,
         size: ITEMS_PER_PAGE,
-        status: orderSubTab === 'open' ? 'OPEN' : orderSubTab === 'partially_filled' ? 'PARTIALLY_FILLED' : orderSubTab === 'cancelled' ? 'CANCELLED' : undefined,
+        status: orderSubTab === 'OPEN' ? 'OPEN' : orderSubTab === 'PARTIALLY_FILLED' ? 'PARTIALLY_FILLED' : orderSubTab === 'CANCELLED' ? 'CANCELLED' : orderSubTab,
       });
       setPaginatedOrders(response.data.orders || []);
       setPaginatedOrdersCount(response.data.count || 0);
@@ -195,6 +193,7 @@ export default function TradesPage() {
       const response = await client.api.getTrades({
         from,
         size: ITEMS_PER_PAGE,
+        productCode: tradeSubTab,
       });
       setPaginatedTrades(response.data.trades || []);
       setPaginatedTradesCount(response.data.count || 0);
@@ -205,7 +204,7 @@ export default function TradesPage() {
       setLoading(false);
     }
   };
-  
+
   const fetchShowcase = async () => {
     try {
       setLoading(true);
@@ -227,7 +226,7 @@ export default function TradesPage() {
       const start = (page - 1) * ITEMS_PER_PAGE;
       setPaginatedPositions(positions.slice(start, start + ITEMS_PER_PAGE));
       setPaginatedPositionsCount(positions.length);
-      
+
       setPositionCounts({
         all: positions.length,
         green: positions.filter(p => p.riskLevel === 'SAFE').length,
@@ -250,12 +249,12 @@ export default function TradesPage() {
 
   const totalCount =
     activeTab === 'orders' ? paginatedOrdersCount :
-    activeTab === 'trades' ? paginatedTradesCount :
-    paginatedPositionsCount;
+      activeTab === 'trades' ? paginatedTradesCount :
+        paginatedPositionsCount;
 
   const tabLabel =
     activeTab === 'orders' ? 'سفارش' :
-    activeTab === 'trades' ? 'معامله' : 'پوزیشن';
+      activeTab === 'trades' ? 'معامله' : 'پوزیشن';
 
   const activeFilterCount = [
     appliedFilters.search !== '',
@@ -358,11 +357,10 @@ export default function TradesPage() {
                     <button
                       key={tab.key}
                       onClick={() => handleTabChange(tab.key)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                        activeTab === tab.key
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${activeTab === tab.key
                           ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
                           : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                      }`}
+                        }`}
                     >
                       <IconComponent size={16} />
                       <span className="hidden sm:inline">{tab.label}</span>

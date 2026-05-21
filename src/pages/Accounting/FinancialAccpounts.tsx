@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Api, FinancialAccountDto, TotalFinancialAccountResponseDto } from '../../lib/client';
 import Badge from '../../components/UI/Badge';
 import AccDrawer from '../../components/Accounting/AccDrawer';
-import { Search, ChevronRight, ChevronLeft, Eye, Wallet, Banknote, RefreshCw } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, Eye, Wallet, Banknote, RefreshCw, X, Filter, ChevronDown } from 'lucide-react';
 
 const ACCOUNT_STATUS_MAP: Record<string, { label: string; variant: 'success' | 'danger' | 'warning' | 'info' }> = {
   ACV: { label: 'فعال', variant: 'success' },
@@ -12,13 +12,6 @@ const ACCOUNT_STATUS_MAP: Record<string, { label: string; variant: 'success' | '
   BABLC: { label: 'مسدود شده توسط بانک', variant: 'danger' },
 };
 
-const ASSET_TYPES = [
-  { code: '', label: 'همه ارزها' },
-  { code: 'GOLD', label: 'طلا (GOLD)' },
-  { code: 'SILVER', label: 'نقره (SILVER)' },
-  { code: 'TMN', label: 'تومان (TMN)' },
-];
-
 const ACCOUNT_TYPES = [
   { code: '', label: 'همه نوع‌ها' },
   { code: 'WAL', label: 'کیف پول' },
@@ -26,6 +19,22 @@ const ACCOUNT_TYPES = [
   { code: 'CASH', label: 'صندوق نقدی' },
   { code: 'MARGINWAL', label: 'کیف پول تعهدی' },
   { code: 'CREDITWAL', label: 'کیف پول اعتباری' },
+];
+
+const ASSET_TYPES = [
+  { code: '', label: 'همه ارزها' },
+  { code: 'GOLD', label: 'طلا (GOLD)' },
+  { code: 'SILVER', label: 'نقره (SILVER)' },
+  { code: 'TMN', label: 'تومان (TMN)' },
+];
+
+const STATUS_TYPES = [
+  { code: '', label: 'همه وضعیت‌ها' },
+  { code: 'ACV', label: 'فعال' },
+  { code: 'DAT', label: 'غیر فعال' },
+  { code: 'SYBLC', label: 'بلاک شده توسط سیستم' },
+  { code: 'BLC', label: 'مسدود شده کاربر' },
+  { code: 'BABLC', label: 'مسدود شده توسط بانک' },
 ];
 
 function AccountDetailDrawer({ account, onClose }: { account: FinancialAccountDto | null; onClose: () => void }) {
@@ -120,6 +129,104 @@ function AccountDetailDrawer({ account, onClose }: { account: FinancialAccountDt
   );
 }
 
+// Advanced Filter Popup
+function AdvancedFilterPopup({
+  open,
+  onClose,
+  assetTypeCode,
+  setAssetTypeCode,
+  accountStatusCode,
+  setAccountStatusCode,
+  accountNumber,
+  setAccountNumber,
+  onApply,
+}: {
+  open: boolean;
+  onClose: () => void;
+  assetTypeCode: string;
+  setAssetTypeCode: (v: string) => void;
+  accountStatusCode: string;
+  setAccountStatusCode: (v: string) => void;
+  accountNumber: string;
+  setAccountNumber: (v: string) => void;
+  onApply: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark w-full max-w-md mx-4 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border-light dark:border-border-dark">
+          <h3 className="font-bold text-slate-900 dark:text-white text-base">جستجوی پیشرفته</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">شماره حساب</label>
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="جستجوی شماره حساب..."
+                value={accountNumber}
+                onChange={e => setAccountNumber(e.target.value)}
+                className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">ارز</label>
+            <select
+              value={assetTypeCode}
+              onChange={e => setAssetTypeCode(e.target.value)}
+              className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
+            >
+              {ASSET_TYPES.map(asset => (
+                <option key={asset.code} value={asset.code}>{asset.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">وضعیت</label>
+            <select
+              value={accountStatusCode}
+              onChange={e => setAccountStatusCode(e.target.value)}
+              className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
+            >
+              {STATUS_TYPES.map(status => (
+                <option key={status.code} value={status.code}>{status.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-border-light dark:border-border-dark bg-slate-50 dark:bg-background-dark/50">
+          <button
+            onClick={() => { onApply(); onClose(); }}
+            className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all active:scale-95"
+          >
+            اعمال فیلترها
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
+          >
+            انصراف
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FinancialAccountsPage() {
   const [accounts, setAccounts] = useState<FinancialAccountDto[]>([]);
   const [totalBalance, setTotalBalance] = useState<number>(0);
@@ -128,14 +235,19 @@ export default function FinancialAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<FinancialAccountDto | null>(null);
 
-  // Filters - all fields from FinancialAccountFilterDto
-  const [accountNumber, setAccountNumber] = useState('');
+  // Filters
   const [accountTypeCode, setAccountTypeCode] = useState('');
-  const [accountTypeCategoryCode, setAccountTypeCategoryCode] = useState('');
-  const [providerCode, setProviderCode] = useState('');
-  const [accountStatusCode, setAccountStatusCode] = useState('');
+  
+  // Advanced filters (inside popup)
+  const [accountNumber, setAccountNumber] = useState('');
   const [assetTypeCode, setAssetTypeCode] = useState('');
-  const [partyId, setPartyId] = useState('');
+  const [accountStatusCode, setAccountStatusCode] = useState('');
+  
+  // Popup state
+  const [advancedFilterOpen, setAdvancedFilterOpen] = useState(false);
+  
+  // Track if advanced filters are active
+  const hasAdvancedFilters = accountNumber !== '' || assetTypeCode !== '' || accountStatusCode !== '';
 
   // Pagination
   const [pageNumber, setPageNumber] = useState(0);
@@ -149,11 +261,8 @@ export default function FinancialAccountsPage() {
       const response = await client.api.getTotalWallets({
         accountNumber: accountNumber || undefined,
         accountTypeCode: accountTypeCode || undefined,
-        accountTypeCategoryCode: accountTypeCategoryCode || undefined,
-        providerCode: providerCode || undefined,
         accountStatusCode: accountStatusCode || undefined,
         assetTypeCode: assetTypeCode || undefined,
-        partyId: partyId ? parseInt(partyId) : undefined,
         pageNumber: pageNumber,
         pageSize: pageSize,
       });
@@ -176,7 +285,7 @@ export default function FinancialAccountsPage() {
 
   useEffect(() => {
     fetchAccounts();
-  }, [pageNumber]);
+  }, [pageNumber, accountTypeCode]);
 
   const handleSearch = () => {
     setPageNumber(0);
@@ -184,13 +293,10 @@ export default function FinancialAccountsPage() {
   };
 
   const handleReset = () => {
-    setAccountNumber('');
     setAccountTypeCode('');
-    setAccountTypeCategoryCode('');
-    setProviderCode('');
-    setAccountStatusCode('');
+    setAccountNumber('');
     setAssetTypeCode('');
-    setPartyId('');
+    setAccountStatusCode('');
     setPageNumber(0);
   };
 
@@ -209,7 +315,6 @@ export default function FinancialAccountsPage() {
             </p>
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {totalBalance.toLocaleString('fa-IR')}
-              {/* <span className="text-base font-normal text-slate-400 mr-2">ریال</span> */}
             </p>
           </div>
           <div className="text-left">
@@ -219,93 +324,58 @@ export default function FinancialAccountsPage() {
         </div>
       </div>
 
-      {/* Filters - All filters */}
+      {/* Filter Tabs + Advanced Button */}
       <div className="px-6 py-4 border-b border-border-light dark:border-border-dark">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="شماره حساب..."
-              value={accountNumber}
-              onChange={e => setAccountNumber(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
-            />
+        <div className="flex items-center gap-3">
+          {/* Account Type Tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto flex-1 pb-1">
+            {ACCOUNT_TYPES.map(type => {
+              const isActive = accountTypeCode === type.code;
+              return (
+                <button
+                  key={type.code}
+                  onClick={() => {
+                    setAccountTypeCode(type.code);
+                    setPageNumber(0);
+                  }}
+                  className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                    isActive
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {type.label}
+                </button>
+              );
+            })}
           </div>
 
-          <select
-            value={accountTypeCode}
-            onChange={e => setAccountTypeCode(e.target.value)}
-            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
+          {/* Advanced Filter Button */}
+          <button
+            onClick={() => setAdvancedFilterOpen(true)}
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+              hasAdvancedFilters
+                ? 'bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
           >
-            {ACCOUNT_TYPES.map(type => (
-              <option key={type.code} value={type.code}>{type.label}</option>
-            ))}
-          </select>
+            <Filter className="w-3.5 h-3.5" />
+            جستجوی پیشرفته
+            {hasAdvancedFilters && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            )}
+          </button>
 
-          {/* <input
-            type="text"
-            placeholder="کد دسته‌بندی..."
-            value={accountTypeCategoryCode}
-            onChange={e => setAccountTypeCategoryCode(e.target.value)}
-            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
-          /> */}
-
-          {/* <input
-            type="text"
-            placeholder="کد ارائه‌دهنده..."
-            value={providerCode}
-            onChange={e => setProviderCode(e.target.value)}
-            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
-          /> */}
-
-          <select
-            value={assetTypeCode}
-            onChange={e => setAssetTypeCode(e.target.value)}
-            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
-          >
-            {ASSET_TYPES.map(asset => (
-              <option key={asset.code} value={asset.code}>{asset.label}</option>
-            ))}
-          </select>
-
-          <select
-            value={accountStatusCode}
-            onChange={e => setAccountStatusCode(e.target.value)}
-            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
-          >
-            <option value="">همه وضعیت‌ها</option>
-            <option value="ACV">فعال</option>
-            <option value="DAT">غیر فعال</option>
-            <option value="SYBLC">بلاک شده توسط سیستم</option>
-            <option value="BLC">مسدود شده کاربر</option>
-            <option value="BABLC">مسدود شده توسط بانک</option>
-          </select>
-
-          {/* <input
-            type="number"
-            placeholder="شناسه طرف حساب (Party ID)..."
-            value={partyId}
-            onChange={e => setPartyId(e.target.value)}
-            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
-          /> */}
-
-          <div className="flex gap-2">
-            <button
-              onClick={handleSearch}
-              className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 active:scale-95"
-            >
-              <Search className="w-4 h-4" />
-              جستجو
-            </button>
+          {/* Reset Button */}
+          {hasAdvancedFilters && (
             <button
               onClick={handleReset}
-              className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 active:scale-95"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+              title="حذف فیلترها"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -553,6 +623,19 @@ export default function FinancialAccountsPage() {
 
       {/* Detail Drawer */}
       <AccountDetailDrawer account={selected} onClose={() => setSelected(null)} />
+
+      {/* Advanced Filter Popup */}
+      <AdvancedFilterPopup
+        open={advancedFilterOpen}
+        onClose={() => setAdvancedFilterOpen(false)}
+        assetTypeCode={assetTypeCode}
+        setAssetTypeCode={setAssetTypeCode}
+        accountStatusCode={accountStatusCode}
+        setAccountStatusCode={setAccountStatusCode}
+        accountNumber={accountNumber}
+        setAccountNumber={setAccountNumber}
+        onApply={handleSearch}
+      />
     </div>
   );
 }

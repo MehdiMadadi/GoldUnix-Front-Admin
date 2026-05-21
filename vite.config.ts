@@ -9,6 +9,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
+        // target: 'http://94.182.92.104:9092',
         target: 'http://localhost:9092',
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
@@ -24,6 +25,7 @@ export default defineConfig({
         }
       },
       '/rest': {
+        // target: 'http://94.182.92.104:9092',
         target: 'http://localhost:9092',
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
