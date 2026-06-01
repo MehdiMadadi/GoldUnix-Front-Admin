@@ -33,6 +33,9 @@ export interface UserInfoDto {
   referralCode?: string;
   /** @format date-time */
   createdAt?: string;
+  type?: string;
+  typeCode?: string;
+  permissions?: string[];
 }
 
 export interface ChartPreferencesDto {
@@ -182,6 +185,28 @@ export interface GrantedAuthority {
   authority?: string;
 }
 
+export interface Permission {
+  /** @format date-time */
+  version?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format int64 */
+  id?: number;
+  description?: string;
+  code?: string;
+}
+
+export interface PermissionAccess {
+  /** @format date-time */
+  version?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format int64 */
+  id?: number;
+  type?: Permission;
+  userAccount?: UserAccount;
+}
+
 export interface UserAccount {
   /** @format date-time */
   version?: string;
@@ -212,6 +237,7 @@ export interface UserAccount {
   /** @format int64 */
   partyId?: number;
   userRole?: "USER" | "ADMIN";
+  permissions?: PermissionAccess[];
   enabled?: boolean;
   password?: string;
   authorities?: GrantedAuthority[];
@@ -665,8 +691,6 @@ export interface UserAccountDto {
   referralCode?: string;
   referredBy?: UserAccount;
   status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
-  /** @format int64 */
-  partyId?: number;
   type?: string;
   typeCode?: string;
   /** @format date-time */
@@ -1119,6 +1143,7 @@ export interface MarginOrderRequest {
     | "TMN";
   side?: "BUY" | "SELL" | "LONG" | "SHORT";
   amount?: number;
+  marginAssetType?: string;
   leverage?: number;
   tradeTerm?: "MARGIN" | "T_PLUS_1" | "T_PLUS_2" | "FORWARD_T2" | "FORWARD_T1";
   price?: number;
@@ -1680,6 +1705,7 @@ export interface MarketDto {
   nameEn?: string;
   enabled?: boolean;
   leverageOptions?: string[];
+  rolesTypeAccess?: string[];
 }
 
 export interface FaqDto {
@@ -1742,6 +1768,22 @@ export interface WalletAccountDto {
   currency?: string;
   description?: string;
   type?: string;
+}
+
+export interface BreakevenResponse {
+  totalBuyQuantity?: number;
+  totalBuyValue?: number;
+  avgBuyPrice?: number;
+  totalSellQuantity?: number;
+  totalSellValue?: number;
+  avgSellPrice?: number;
+  netRequiredQuantity?: number;
+  breakevenPrice?: number;
+  currentMarketPrice?: number;
+  /** @format int32 */
+  includedTradeCount?: number;
+  /** @format int32 */
+  totalTradeCount?: number;
 }
 
 export interface RemoveBankAccountDto {
@@ -2138,6 +2180,20 @@ export class Api<
      * No description
      *
      * @tags Admin
+     * @name ToggleIncludeInCalculation
+     * @request PUT:/api/admin/{tradeId}/toggle-include
+     */
+    toggleIncludeInCalculation: (tradeId: number, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/admin/${tradeId}/toggle-include`,
+        method: "PUT",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
      * @name UpdateUserCategory
      * @summary Update user category
      * @request PUT:/api/admin/user/category
@@ -2369,6 +2425,29 @@ export class Api<
       this.request<void, void>({
         path: `/api/admin/faq/${id}`,
         method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name BatchToggleInclude
+     * @request PUT:/api/admin/batch-toggle-include
+     */
+    batchToggleInclude: (
+      query: {
+        included: boolean;
+      },
+      data: number[],
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/batch-toggle-include`,
+        method: "PUT",
+        query: query,
+        body: data,
+        type: ContentType.Json,
         ...params,
       }),
 
@@ -4483,6 +4562,30 @@ export class Api<
       this.request<PhysicalDeliveryResponseDto[], any>({
         path: `/api/admin/delivers`,
         method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Admin
+     * @name CalculateBreakevenPrice
+     * @request GET:/api/admin/breakeven-price
+     */
+    calculateBreakevenPrice: (
+      query: {
+        /** @format date */
+        startDate: string;
+        /** @format date */
+        endDate: string;
+        onlyIncluded?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<BreakevenResponse, any>({
+        path: `/api/admin/breakeven-price`,
+        method: "GET",
+        query: query,
         ...params,
       }),
 
