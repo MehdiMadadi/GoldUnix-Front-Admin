@@ -14,7 +14,10 @@ import {
   FiBarChart2, 
   FiSettings, 
   FiLogOut,
-  FiTrendingUp
+  FiTrendingUp,
+  FiGrid,
+  FiHelpCircle,
+  FiFileText
 } from 'react-icons/fi';
 
 interface NavItem {
@@ -25,16 +28,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', icon: <FiPieChart size={20} />, label: 'داشبورد', permission: 'dashboard' },
+  { to: '/', icon: <FiPieChart size={18} />, label: 'داشبورد', permission: 'dashboard' },
+  { to: '/users', icon: <FiUsers size={18} />, label: 'کاربران', permission: 'users' },
   { to: '/financial-accounts', icon: <FiUsers size={20} />, label: 'خزانه', permission: 'users' },
-  { to: '/users', icon: <FiUsers size={20} />, label: 'کاربران', permission: 'users' },
-  { to: '/trades', icon: <FiRefreshCw size={20} />, label: 'معاملات', permission: 'trades' },
-  // { to: '/risk', icon: <FiShield size={20} />, label: 'ریسک', permission: 'risk' },
-  // { to: '/treasury', icon: <FiDatabase size={20} />, label: 'خزانه', permission: 'treasury' },
-  // { to: '/deposits', icon: <FiDollarSign size={20} />, label: 'سپرده', permission: 'deposits' },
-  // { to: '/pricing', icon: <FiTag size={20} />, label: 'قیمت‌گذاری', permission: 'pricing' },
-  // { to: '/accounting', icon: <FiBook size={20} />, label: 'حسابداری', permission: 'accounting' },
-  // { to: '/reports', icon: <FiBarChart2 size={20} />, label: 'گزارش‌ها', permission: 'reports' },
+  { to: '/trades', icon: <FiRefreshCw size={18} />, label: 'معاملات', permission: 'trades' },
+  { to: '/cashouts', icon: <FiDollarSign size={18} />, label: 'برداشت‌ها', permission: 'dashboard' },
+  { to: '/products', icon: <FiGrid size={18} />, label: 'محصولات', permission: 'dashboard' },
+  { to: '/system/config', icon: <FiSettings size={18} />, label: 'تنظیمات سیستم', permission: 'dashboard' },
+  { to: '/faq', icon: <FiHelpCircle size={18} />, label: 'سوالات متداول', permission: 'dashboard' },
 ];
 
 export default function Sidebar() {
@@ -57,53 +58,63 @@ export default function Sidebar() {
     <>
       <div className={`overlay ${isOpen ? 'show' : ''}`} onClick={close} />
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="h-full flex flex-col justify-between p-5">
-          <div>
-            <div className="flex items-center gap-3 px-2 mb-8">
-              <div className="bg-gradient-to-br from-primary to-blue-400 rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg shrink-0">
-                <FiTrendingUp size={28} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-slate-900 dark:text-white text-lg font-extrabold">سامانه متمرکز مالی</h1>
-                {/* <p className="text-slate-500 dark:text-slate-400 text-xs">مدیریت ریسک پیشرفته</p> */}
-              </div>
+        <div className="h-full flex flex-col p-4">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 px-2 mb-6">
+            <div className="bg-primary rounded-lg w-8 h-8 flex items-center justify-center shrink-0">
+              <FiTrendingUp size={18} className="text-white" />
             </div>
+            <h1 className="text-slate-900 dark:text-white text-sm font-bold">
+              پنل مدیریت
+            </h1>
+          </div>
 
-            <nav className="flex flex-col gap-1">
-              {NAV_ITEMS.filter(item => hasPermission(item.permission)).map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-                  onClick={close}
-                >
-                  {item.icon}
-                  <span className="text-sm">{item.label}</span>
-                </NavLink>
-              ))}
-
-              <div className="pt-4 pb-2">
-                <div className="h-px bg-slate-200 dark:bg-border-dark" />
-              </div>
-
+          {/* Navigation */}
+          <nav className="flex-1 flex flex-col gap-0.5">
+            {NAV_ITEMS.filter(item => hasPermission(item.permission)).map(item => (
               <NavLink
-                to="/settings"
-                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) => 
+                  `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
+                    isActive 
+                      ? 'bg-primary/10 text-primary font-medium' 
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`
+                }
                 onClick={close}
               >
-                <FiSettings size={20} />
-                <span className="text-sm">تنظیمات</span>
+                {item.icon}
+                <span>{item.label}</span>
               </NavLink>
+            ))}
+          </nav>
 
-              <button 
-                onClick={handleLogout}
-                className="nav-item text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-400/10 dark:text-rose-400"
-              >
-                <FiLogOut size={20} />
-                <span className="text-sm">خروج</span>
-              </button>
-            </nav>
+          {/* Footer */}
+          <div className="border-t border-border-light dark:border-border-dark pt-3 mt-2">
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => 
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive 
+                    ? 'bg-primary/10 text-primary font-medium' 
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`
+              }
+              onClick={close}
+            >
+              <FiSettings size={18} />
+              <span>تنظیمات</span>
+            </NavLink>
+            
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-400/10 w-full transition-all mt-0.5"
+            >
+              <FiLogOut size={18} />
+              <span>خروج</span>
+            </button>
           </div>
         </div>
       </aside>

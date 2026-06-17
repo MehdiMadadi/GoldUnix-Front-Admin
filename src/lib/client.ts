@@ -257,6 +257,93 @@ export interface UserType {
   id?: number;
 }
 
+export interface LocalTime {
+  /** @format int32 */
+  hour?: number;
+  /** @format int32 */
+  minute?: number;
+  /** @format int32 */
+  second?: number;
+  /** @format int32 */
+  nano?: number;
+}
+
+export interface UpdateSystemConfigRequest {
+  tradingEnabled?: boolean;
+  cashTradeEnabled?: boolean;
+  marginTradeEnabled?: boolean;
+  minTradeQuantity?: number;
+  maxTradeQuantity?: number;
+  maxSingleOrderValue?: number;
+  maxDailyVolumePerUser?: number;
+  /** @format int32 */
+  maxDailyOrdersPerUser?: number;
+  maxLeverage?: number;
+  initialMarginRate?: number;
+  maintenanceMarginRate?: number;
+  marginWarningThreshold?: number;
+  marginCriticalThreshold?: number;
+  liquidationThreshold?: number;
+  maxExposurePerUser?: number;
+  positionConcentrationLimit?: number;
+  liquidationSpread?: number;
+  tradingHoursStart?: LocalTime;
+  tradingHoursEnd?: LocalTime;
+  settlementTime?: string;
+  settlementMode?: "CASH" | "MARGIN" | "T_PLUS_0" | "T_PLUS_1" | "T_PLUS_2";
+  /** @format int32 */
+  priceTtlSeconds?: number;
+  /** @format int32 */
+  walletReserveTimeoutSeconds?: number;
+  chargeFundingOnWeekends?: boolean;
+  killSwitchGlobal?: boolean;
+  killSwitchMargin?: boolean;
+  killSwitchCash?: boolean;
+  changeReason?: string;
+  changedBy?: string;
+}
+
+export interface SystemConfigDto {
+  /** @format int64 */
+  id?: number;
+  /** @format int32 */
+  versionNumber?: number;
+  tradingEnabled?: boolean;
+  cashTradeEnabled?: boolean;
+  marginTradeEnabled?: boolean;
+  minTradeQuantity?: number;
+  maxTradeQuantity?: number;
+  maxSingleOrderValue?: number;
+  maxDailyVolumePerUser?: number;
+  /** @format int32 */
+  maxDailyOrdersPerUser?: number;
+  maxLeverage?: number;
+  initialMarginRate?: number;
+  maintenanceMarginRate?: number;
+  marginWarningThreshold?: number;
+  marginCriticalThreshold?: number;
+  liquidationThreshold?: number;
+  maxExposurePerUser?: number;
+  positionConcentrationLimit?: number;
+  liquidationSpread?: number;
+  tradingHoursStart?: LocalTime;
+  tradingHoursEnd?: LocalTime;
+  settlementTime?: string;
+  settlementMode?: "CASH" | "MARGIN" | "T_PLUS_0" | "T_PLUS_1" | "T_PLUS_2";
+  /** @format int32 */
+  priceTtlSeconds?: number;
+  /** @format int32 */
+  walletReserveTimeoutSeconds?: number;
+  chargeFundingOnWeekends?: boolean;
+  killSwitchGlobal?: boolean;
+  killSwitchMargin?: boolean;
+  killSwitchCash?: boolean;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format date-time */
+  updatedAt?: string;
+}
+
 /** Entity to create */
 export interface ApplicationConfig {
   /** @format date-time */
@@ -1309,6 +1396,13 @@ export interface TotalFinancialAccountResponseDto {
   asset?: string;
 }
 
+export interface ChangeTradingTimeRequest {
+  /** @format int32 */
+  hours?: number;
+  /** @format int32 */
+  minute?: number;
+}
+
 export interface CashoutFilterDto {
   /** @format int64 */
   id?: number;
@@ -1768,6 +1862,39 @@ export interface WalletAccountDto {
   currency?: string;
   description?: string;
   type?: string;
+}
+
+export interface SystemStatusDto {
+  tradingEnabled?: boolean;
+  cashTradeEnabled?: boolean;
+  marginTradeEnabled?: boolean;
+  killSwitchActive?: boolean;
+  withinTradingHours?: boolean;
+  settlementTime?: string;
+}
+
+export interface TradingLimitsDto {
+  maxSingleOrderValue?: number;
+  maxDailyVolumePerUser?: number;
+  /** @format int32 */
+  maxDailyOrdersPerUser?: number;
+  minTradeQuantity?: number;
+  maxTradeQuantity?: number;
+  tradingHoursStart?: LocalTime;
+  tradingHoursEnd?: LocalTime;
+  isWithinTradingHours?: boolean;
+}
+
+export interface MarginLimitsDto {
+  maxLeverage?: number;
+  initialMarginRate?: number;
+  maintenanceMarginRate?: number;
+  marginWarningThreshold?: number;
+  marginCriticalThreshold?: number;
+  liquidationThreshold?: number;
+  maxExposurePerUser?: number;
+  positionConcentrationLimit?: number;
+  liquidationSpread?: number;
 }
 
 export interface BreakevenResponse {
@@ -2425,6 +2552,26 @@ export class Api<
       this.request<void, void>({
         path: `/api/admin/faq/${id}`,
         method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name UpdateConfig
+     * @summary Update system configuration
+     * @request PUT:/api/admin/config/update
+     */
+    updateConfig: (
+      data: UpdateSystemConfigRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<SystemConfigDto, any>({
+        path: `/api/admin/config/update`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
         ...params,
       }),
 
@@ -3663,6 +3810,63 @@ export class Api<
     /**
      * No description
      *
+     * @tags System Configuration
+     * @name ChangeTradingStartHours
+     * @summary Change Trading start hours
+     * @request POST:/api/admin/config/trading/start/hours
+     */
+    changeTradingStartHours: (
+      query: {
+        changeTradingTimeRequest: ChangeTradingTimeRequest;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/config/trading/start/hours`,
+        method: "POST",
+        query: query,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name ChangeTradingEndHours
+     * @summary Change Trading start hours
+     * @request POST:/api/admin/config/trading/end/hours
+     */
+    changeTradingEndHours: (
+      query: {
+        changeTradingTimeRequest: ChangeTradingTimeRequest;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/admin/config/trading/end/hours`,
+        method: "POST",
+        query: query,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name RollbackToVersion
+     * @summary Rollback to specific configuration version
+     * @request POST:/api/admin/config/rollback/{version}
+     */
+    rollbackToVersion: (version: number, params: RequestParams = {}) =>
+      this.request<SystemConfigDto, any>({
+        path: `/api/admin/config/rollback/${version}`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Admin
      * @name GetCashouts
      * @summary Cashouts List
@@ -4561,6 +4765,81 @@ export class Api<
     deliverRequests: (params: RequestParams = {}) =>
       this.request<PhysicalDeliveryResponseDto[], any>({
         path: `/api/admin/delivers`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name GetSystemStatus
+     * @summary Get system status
+     * @request GET:/api/admin/config/status
+     */
+    getSystemStatus: (params: RequestParams = {}) =>
+      this.request<SystemStatusDto, any>({
+        path: `/api/admin/config/status`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name GetTradingLimits
+     * @summary Get trading limits
+     * @request GET:/api/admin/config/limits/trading
+     */
+    getTradingLimits: (params: RequestParams = {}) =>
+      this.request<TradingLimitsDto, any>({
+        path: `/api/admin/config/limits/trading`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name GetMarginLimits
+     * @summary Get margin trading limits
+     * @request GET:/api/admin/config/limits/margin
+     */
+    getMarginLimits: (params: RequestParams = {}) =>
+      this.request<MarginLimitsDto, any>({
+        path: `/api/admin/config/limits/margin`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name GetConfigHistory
+     * @summary Get configuration history
+     * @request GET:/api/admin/config/history
+     */
+    getConfigHistory: (params: RequestParams = {}) =>
+      this.request<SystemConfigDto[], any>({
+        path: `/api/admin/config/history`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags System Configuration
+     * @name GetActiveConfig
+     * @summary Get active system configuration
+     * @request GET:/api/admin/config/active
+     */
+    getActiveConfig: (params: RequestParams = {}) =>
+      this.request<SystemConfigDto, any>({
+        path: `/api/admin/config/active`,
         method: "GET",
         ...params,
       }),

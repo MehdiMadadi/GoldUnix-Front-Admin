@@ -39,7 +39,7 @@ import {
 } from '../../components/Trades/types';
 import { Api, OrderDto, TradeDto, PositionDetailsResponse } from '../../lib/client';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 10;
 
 function formatBig(n: number) {
   if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toLocaleString('fa-IR', { maximumFractionDigits: 1 })} م`;
@@ -159,18 +159,18 @@ export default function TradesPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const from = (page - 1) * ITEMS_PER_PAGE;
+      const from = (page - 1);
       const response = await client.api.getOrders({
         from,
         size: ITEMS_PER_PAGE,
-        status: orderSubTab === 'OPEN' ? 'OPEN' : orderSubTab === 'PARTIALLY_FILLED' ? 'PARTIALLY_FILLED' : orderSubTab === 'CANCELLED' ? 'CANCELLED' : orderSubTab,
+        status: orderSubTab === 'OPEN' ? 'FILLED' : orderSubTab === 'PARTIALLY_FILLED' ? 'PARTIALLY_FILLED' : orderSubTab === 'CANCELLED' ? 'CANCELLED' : orderSubTab,
       });
       setPaginatedOrders(response.data.orders || []);
       setPaginatedOrdersCount(response.data.count || 0);
 
       // Fetch counts for all statuses
       const [openRes, partialRes, cancelledRes] = await Promise.all([
-        client.api.getOrders({ from: 0, size: 1, status: 'OPEN' }),
+        client.api.getOrders({ from: 0, size: 1, status: 'FILLED' }),
         client.api.getOrders({ from: 0, size: 1, status: 'PARTIALLY_FILLED' }),
         client.api.getOrders({ from: 0, size: 1, status: 'CANCELLED' }),
       ]);
@@ -189,7 +189,7 @@ export default function TradesPage() {
   const fetchTrades = async () => {
     try {
       setLoading(true);
-      const from = (page - 1) * ITEMS_PER_PAGE;
+      const from = (page - 1);
       const response = await client.api.getTrades({
         from,
         size: ITEMS_PER_PAGE,
@@ -208,7 +208,7 @@ export default function TradesPage() {
   const fetchShowcase = async () => {
     try {
       setLoading(true);
-      const from = (page - 1) * ITEMS_PER_PAGE;
+      const from = (page - 1);
       const response = await client.api.showcase();
       setShowcase(response.data!);
     } catch (error) {
@@ -316,10 +316,10 @@ export default function TradesPage() {
           <section className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl overflow-hidden">
             <div className="flex flex-col gap-3 p-4 md:p-5 border-b border-border-light dark:border-border-dark">
               <div className="flex items-center justify-between">
-                <div>
+                {/* <div>
                   <h3 className="font-bold text-lg">مدیریت معاملات</h3>
                   <p className="text-xs text-slate-500 mt-0.5">{totalCount.toLocaleString('fa-IR')} {tabLabel}</p>
-                </div>
+                </div> */}
                 <div className="flex items-center gap-2">
                   {/* <button
                     onClick={() => setShowStats(true)}

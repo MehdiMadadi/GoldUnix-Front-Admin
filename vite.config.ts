@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const apiBaseUrl = 'http://94.182.92.104:9092';
+// const apiBaseUrl = 'http://localhost:9092';
+
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
@@ -9,8 +12,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        // target: 'http://94.182.92.104:9092',
-        target: 'http://localhost:9092',
+        target: apiBaseUrl,
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false,
@@ -25,8 +27,7 @@ export default defineConfig({
         }
       },
       '/rest': {
-        // target: 'http://94.182.92.104:9092',
-        target: 'http://localhost:9092',
+        target: apiBaseUrl,
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false,

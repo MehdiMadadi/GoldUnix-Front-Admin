@@ -17,6 +17,14 @@ import SettingsPage from './pages/Settings';
 import LoginPage from './pages/auth/LoginPage';
 import FinancialAccountsPage from './pages/Accounting/FinancialAccpounts';
 import Khazaneh from './pages/Accounting/Khazaneh';
+import CashoutsPage from './pages/Accounting/CashoutsPage';
+import CashoutPage from './pages/Accounting/CashoutPage';
+import Products from './pages/Products';
+import SystemConfig from './pages/SystemConfig';
+import Faq from './pages/Faq';
+import UsersManagement from './pages/UsersManagement';
+import FinancialReports from './pages/FinancialReports';
+import TradesManagement from './pages/TradesManagement';
 
 export default function App() {
   return (
@@ -38,6 +46,41 @@ export default function App() {
                 <Route path="/financial-accounts" element={
                   <ProtectedRoute permission="dashboard">
                     <Khazaneh />
+                  </ProtectedRoute>
+                } />
+                <Route path="/cashouts" element={
+                  <ProtectedRoute permission="dashboard">
+                    <CashoutPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/products" element={
+                  <ProtectedRoute permission="dashboard">
+                    <Products />
+                  </ProtectedRoute>
+                } />
+                <Route path="/system/config" element={
+                  <ProtectedRoute permission="dashboard">
+                    <SystemConfig />
+                  </ProtectedRoute>
+                } />
+                <Route path="/faq" element={
+                  <ProtectedRoute permission="dashboard">
+                    <Faq />
+                  </ProtectedRoute>
+                } />
+                <Route path="/users/v2" element={
+                  <ProtectedRoute permission="dashboard">
+                    <UsersManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="/financial/report" element={
+                  <ProtectedRoute permission="dashboard">
+                    <FinancialReports />
+                  </ProtectedRoute>
+                } />
+                <Route path="/trades" element={
+                  <ProtectedRoute permission="dashboard">
+                    <TradesManagement />
                   </ProtectedRoute>
                 } />
                 <Route path="/users" element={

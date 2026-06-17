@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { FiAlertCircle, FiCheck, FiX } from 'react-icons/fi';
+// InfoTab.tsx
+import { useState, useEffect } from 'react';
+import { FiAlertCircle, FiCheck, FiX, FiExternalLink } from 'react-icons/fi';
 import Badge from '../../UI/Badge';
 import ProgressBar from '../../UI/ProgressBar';
-import { Api, UserAccountDto } from '../../../lib/client';
+import { Api, UserAccountDto, WalletDto } from '../../../lib/client';
 
 interface InfoTabProps {
   user: UserAccountDto;
@@ -26,8 +27,26 @@ export default function InfoTab({ user, onUserUpdate }: InfoTabProps) {
   const [statusPending, setStatusPending] = useState<UserAccountDto['status'] | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wallets, setWallets] = useState<WalletDto[]>([]);
+  const [loadingWallets, setLoadingWallets] = useState(true);
 
   const client = new Api();
+
+  useEffect(() => {
+    fetchWallets();
+  }, [user.id]);
+
+  const fetchWallets = async () => {
+    try {
+      setLoadingWallets(true);
+      const response = await client.api.getWalletsPreUsers(user.id!);
+      setWallets(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch wallets:', err);
+    } finally {
+      setLoadingWallets(false);
+    }
+  };
 
   const applyStatus = async () => {
     if (!statusPending) return;
@@ -53,6 +72,11 @@ export default function InfoTab({ user, onUserUpdate }: InfoTabProps) {
   const formatDate = (date?: string) => {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('fa-IR');
+  };
+
+  const formatCurrency = (amount?: number, currency?: string) => {
+    if (!amount && amount !== 0) return '—';
+    return `${amount.toLocaleString('fa-IR')} ${currency || ''}`;
   };
 
   return (

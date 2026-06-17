@@ -1,13 +1,17 @@
-import { useState, useMemo, useEffect } from 'react';
+// WalletTab.tsx
+import { useState, useEffect } from 'react';
 import { 
   FiArrowDown, 
   FiArrowUp, 
   FiLock, 
   FiUnlock, 
   FiBarChart2, 
-  FiFileText 
+  FiFileText,
+  FiChevronDown,
+  FiChevronLeft,
+  FiCreditCard
 } from 'react-icons/fi';
-import { Api, UserWalletDto, AccountTransactionsDto } from '../../../lib/client';
+import { Api, FinancialAccountDto } from '../../../lib/client';
 
 interface WalletTabProps {
   userId: number;
@@ -29,46 +33,27 @@ function fmt(n?: number) {
 }
 
 export default function WalletTab({ userId }: WalletTabProps) {
-  const [userInfo, setUserInfo] = useState<UserWalletDto | null>(null);
+  const [wallets, setWallets] = useState<FinancialAccountDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>('all');
-  const [showStats, setShowStats] = useState(false);
+  const [expandedWallet, setExpandedWallet] = useState<number | null>(null);
 
   const client = new Api();
 
   useEffect(() => {
-    fetchWalletData();
+    fetchWallets();
   }, [userId]);
 
-  const fetchWalletData = async () => {
+  const fetchWallets = async () => {
     try {
       setLoading(true);
-      const response = await client.api.getUserWalletByUserId(userId);
-      setUserInfo(response.data);
+      const response = await client.api.getWalletsPreUsers(userId);
+      setWallets(response.data || []);
     } catch (error) {
-      console.error('Failed to fetch wallet data:', error);
+      console.error('Failed to fetch wallets:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  const filtered = useMemo(() => {
-    if (!userInfo?.walletTransactions) return [];
-    if (filter === 'all') return userInfo.walletTransactions;
-    return userInfo.walletTransactions.filter(t => 
-      t.transactionType?.code?.toLowerCase().includes(filter.toLowerCase())
-    );
-  }, [userInfo?.walletTransactions, filter]);
-
-  const freeBalance = (userInfo?.balance || 0) - (userInfo?.blockedBalance || 0);
-  
-  const transactionTypes = useMemo(() => {
-    const types = new Set<string>();
-    userInfo?.walletTransactions?.forEach(t => {
-      if (t.transactionType?.code) types.add(t.transactionType.code);
-    });
-    return Array.from(types);
-  }, [userInfo?.walletTransactions]);
 
   if (loading) {
     return (
@@ -78,103 +63,129 @@ export default function WalletTab({ userId }: WalletTabProps) {
     );
   }
 
+  if (wallets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+        <FiCreditCard size={40} className="mb-2" />
+        <p className="text-sm">کیف پولی یافت نشد</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-5 border-b border-border-light dark:border-border-dark">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">خلاصه کیف پول</h4>
-          <button
-            onClick={() => setShowStats(v => !v)}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-              showStats ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {wallets.map(wallet => (
+          <div 
+            key={wallet.id} 
+            className="border border-border-light dark:border-border-dark rounded-xl overflow-hidden bg-white dark:bg-surface-dark"
           >
-            <FiBarChart2 size={18} />
-          </button>
-        </div>
+            {/* Wallet Header */}
+            <div 
+              onClick={() => setExpandedWallet(expandedWallet === wallet.id ? null : wallet.id!)}
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <FiCreditCard size={20} className="text-primary" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {wallet.name || 'کیف پول'}
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {wallet.currency?.name || wallet.currency?.code || 'ریال'}
+                    {wallet.accountNumber && ` • ${wallet.accountNumber}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-left">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    {fmt(wallet.balances?.availableBalance || wallet.balances?.balance)}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    {wallet.currency?.symbol || 'ریال'}
+                  </p>
+                </div>
+                {expandedWallet === wallet.id ? (
+                  <FiChevronDown size={18} className="text-slate-400" />
+                ) : (
+                  <FiChevronLeft size={18} className="text-slate-400" />
+                )}
+              </div>
+            </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-xl p-3 text-center">
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mb-1">موجودی آزاد</p>
-            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{fmt(freeBalance)}</p>
-            <p className="text-[10px] text-emerald-500 mt-0.5">ریال</p>
-          </div>
-          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3 text-center">
-            <p className="text-[10px] text-amber-600 dark:text-amber-400 mb-1">بلوک‌شده</p>
-            <p className="text-sm font-bold text-amber-700 dark:text-amber-300">{fmt(userInfo?.blockedBalance)}</p>
-            <p className="text-[10px] text-amber-500 mt-0.5">ریال</p>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-3 text-center">
-            <p className="text-[10px] text-blue-600 dark:text-blue-400 mb-1">اعتبار</p>
-            <p className="text-sm font-bold text-blue-700 dark:text-blue-300">{fmt(userInfo?.creditBalance)}</p>
-            <p className="text-[10px] text-blue-500 mt-0.5">ریال</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-border-light dark:border-border-dark overflow-x-auto">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-            filter === 'all' ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-          }`}
-        >
-          همه
-        </button>
-        {transactionTypes.map(type => (
-          <button
-            key={type}
-            onClick={() => setFilter(type)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-              filter === type ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            {TX_CONFIG[type]?.label || type}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-            <FiFileText size={40} className="mb-2" />
-            <p className="text-sm">تراکنشی یافت نشد</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border-light dark:divide-border-dark">
-            {filtered.map(tx => {
-              const config = TX_CONFIG[tx.transactionType?.code || ''] || DEFAULT_TX_CONFIG;
-              const IconComponent = config.icon;
-              const isNegative = tx.amount! < 0 || tx.transactionType?.code === 'WITHDRAW';
-              
-              return (
-                <div key={tx.id} className="flex items-center gap-3 px-5 py-4">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bg}`}>
-                    <IconComponent size={18} className={config.color} />
+            {/* Wallet Details - Expanded */}
+            {expandedWallet === wallet.id && (
+              <div className="border-t border-border-light dark:border-border-dark p-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/20">
+                {/* Balance Details */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white dark:bg-surface-dark rounded-lg p-2.5 text-center border border-border-light dark:border-border-dark">
+                    <p className="text-[10px] text-slate-400 mb-0.5">موجودی کل</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      {fmt(wallet.balances?.balance)}
+                    </p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${config.color}`}>{config.label}</span>
-                      <span className={`text-sm font-bold  ${isNegative ? 'text-rose-500' : 'text-emerald-600'}`}>
-                        {isNegative ? '−' : '+'}{fmt(Math.abs(tx.amount || 0))}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[11px] text-slate-400 truncate">{tx.description || '—'}</span>
-                      <span className="text-[11px] text-slate-400  mr-2 flex-shrink-0">
-                        {tx.jalaliDateTime || new Date(tx.dateTime!).toLocaleDateString('fa-IR')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-[10px] text-slate-400">موجودی:</span>
-                      <span className="text-[10px]  text-slate-500">{fmt(tx.balance)}</span>
-                    </div>
+                  <div className="bg-white dark:bg-surface-dark rounded-lg p-2.5 text-center border border-border-light dark:border-border-dark">
+                    <p className="text-[10px] text-slate-400 mb-0.5">قابل برداشت</p>
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {fmt(wallet.balances?.availableBalance)}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-surface-dark rounded-lg p-2.5 text-center border border-border-light dark:border-border-dark">
+                    <p className="text-[10px] text-slate-400 mb-0.5">مسدود</p>
+                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                      {fmt(wallet.balances?.blockBalance)}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Wallet Info */}
+                <div className="space-y-1.5 text-[11px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">نوع حساب</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      {wallet.type?.description || wallet.type?.code || '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">وضعیت</span>
+                    <span className={`font-medium ${
+                      wallet.status?.code === 'ACTIVE' 
+                        ? 'text-emerald-600 dark:text-emerald-400' 
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}>
+                      {wallet.status?.description || wallet.status?.code || '—'}
+                    </span>
+                  </div>
+                  {wallet.createdJalaliDate && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">تاریخ ایجاد</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        {wallet.createdJalaliDate}
+                      </span>
+                    </div>
+                  )}
+                  {wallet.description && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">توضیحات</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
+                        {wallet.description}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Button */}
+                <button className="w-full py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
+                  <FiFileText size={14} />
+                  مشاهده تراکنش‌ها
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

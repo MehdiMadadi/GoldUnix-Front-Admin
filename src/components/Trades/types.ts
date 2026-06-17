@@ -1,7 +1,7 @@
 export type MainTab = 'orders' | 'trades' | 'positions';
 export type TradeTypeFilter = 'all' | 'cash' | 'tomorrow' | 'day_after' | 'commitment';
 
-export type OrderSubTab = 'PENDING' | 'ACCEPTED' | 'EXECUTED' | 'PARTIALLY_EXECUTED' | 'CANCELLED' | 'REJECTED' | 'EXPIRED' | 'OPEN';
+export type OrderSubTab = 'PENDING' | 'ACCEPTED' | 'FILLED' | 'PARTIALLY_EXECUTED' | 'CANCELLED' | 'REJECTED' | 'EXPIRED' | 'OPEN';
 export type TradeSubTab = 'SPOT_GOLD' | 'MARGIN_GOLD' | 'FORWARD_T2_GOLD' | 'FORWARD_T1_GOLD';
 export type PositionSubTab = 'all' | 'green' | 'yellow' | 'red';
 
@@ -34,7 +34,7 @@ export const DEFAULT_TRADE_FILTERS: TradeFiltersState = {
 export const ORDER_SUB_TABS: { key: OrderSubTab; label: string; icon: string }[] = [
   { key: 'PENDING', label: 'در انتظار', icon: 'radio_button_checked' },
   { key: 'ACCEPTED', label: 'قبول شده', icon: 'pie_chart' },
-  { key: 'EXECUTED', label: 'انجام شده', icon: 'cancel' },
+  { key: 'FILLED', label: 'انجام شده', icon: 'cancel' },
   { key: 'PARTIALLY_EXECUTED', label: 'PARTIALLY_EXECUTED', icon: 'cancel' },
   { key: 'CANCELLED', label: 'لغو', icon: 'cancel' },
   { key: 'REJECTED', label: 'باطل', icon: 'cancel' },

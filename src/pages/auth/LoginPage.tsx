@@ -54,7 +54,7 @@ export default function LoginPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     );
   }
@@ -62,35 +62,39 @@ export default function LoginPage() {
   if (isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-background-dark dark:to-surface-dark">
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 shadow-xl border border-border-light dark:border-border-dark">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-background-dark">
+      <div className="w-full max-w-sm">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-border-light dark:border-border-dark">
+          {/* Logo */}
           <div className="text-center mb-6">
-            <div className="inline-flex size-14 items-center justify-center rounded-full bg-primary/10 mb-4">
-              <FiLogIn className="text-primary" size={28} />
+            <div className="inline-flex size-12 items-center justify-center rounded-xl bg-primary/10 mb-3">
+              <FiLogIn className="text-primary" size={24} />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">ورود به حساب کاربری</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">ورود</h2>
+            <p className="text-xs text-slate-400 mt-0.5">به پنل مدیریت</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Server Error */}
             {serverError && (
-              <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-xl p-3 text-rose-600 text-sm flex items-center gap-2">
-                <FiAlertCircle size={18} />
+              <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-lg p-2.5 text-rose-600 text-sm flex items-center gap-2">
+                <FiAlertCircle size={16} />
                 <span>{serverError}</span>
               </div>
             )}
 
+            {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">شماره موبایل</label>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">شماره موبایل</label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <FiPhone className="text-slate-400" size={18} />
+                  <FiPhone className="text-slate-400" size={16} />
                 </div>
                 <input
                   type="tel"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className={`w-full pr-10 pl-4 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                  className={`w-full pr-10 pl-3 py-2.5 rounded-lg bg-slate-50 dark:bg-background-dark border text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                     errors.username ? 'border-rose-500' : 'border-border-light dark:border-border-dark'
                   }`}
                   placeholder="۰۹۱۲۳۴۵۶۷۸۹"
@@ -98,23 +102,24 @@ export default function LoginPage() {
                 />
               </div>
               {errors.username && (
-                <p className="mt-1.5 text-xs text-rose-500 flex items-center gap-1">
+                <p className="mt-1 text-xs text-rose-500 flex items-center gap-1">
                   <FiAlertCircle size={12} /> {errors.username}
                 </p>
               )}
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">رمز عبور</label>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">رمز عبور</label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <FiLock className="text-slate-400" size={18} />
+                  <FiLock className="text-slate-400" size={16} />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pr-10 pl-12 py-3 rounded-xl bg-slate-50 dark:bg-background-dark border text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                  className={`w-full pr-10 pl-10 py-2.5 rounded-lg bg-slate-50 dark:bg-background-dark border text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                     errors.password ? 'border-rose-500' : 'border-border-light dark:border-border-dark'
                   }`}
                   placeholder="••••••••"
@@ -124,30 +129,31 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-slate-600"
                 >
-                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-xs text-rose-500 flex items-center gap-1">
+                <p className="mt-1 text-xs text-rose-500 flex items-center gap-1">
                   <FiAlertCircle size={12} /> {errors.password}
                 </p>
               )}
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 px-4 bg-gradient-to-r from-primary to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
             >
               {isSubmitting ? (
                 <>
-                  <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>در حال ورود...</span>
                 </>
               ) : (
                 <>
-                  <FiLogIn size={18} />
-                  <span>ورود به حساب</span>
+                  <FiLogIn size={16} />
+                  <span>ورود</span>
                 </>
               )}
             </button>

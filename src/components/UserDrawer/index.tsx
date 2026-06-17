@@ -1,13 +1,13 @@
+// UserDrawer.tsx - آپدیت شده
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiX, FiBriefcase, FiUser, FiInfo, FiDatabase, FiFileText, FiLayers } from 'react-icons/fi';
+import { FiX, FiBriefcase, FiUser, FiInfo, FiFileText, FiCreditCard, FiTrendingUp } from 'react-icons/fi';
 import Badge from '../UI/Badge';
 import { DRAWER_TABS, type DrawerTab } from './UserDrawer.types';
 import InfoTab from './tabs/InfoTab';
 import WalletTab from './tabs/WalletTab';
-import GoldBalanceTab from './tabs/GoldBalanceTab';
 import OrdersTab from './tabs/OrdersTab';
 import StakingTab from './tabs/StakingTab';
-import { Api, InvestmentAccountDto, UserAccountDto, UserWalletDto } from '../../lib/client';
+import { Api, UserAccountDto } from '../../lib/client';
 
 interface UserDrawerProps {
   user: UserAccountDto | null;
@@ -17,10 +17,9 @@ interface UserDrawerProps {
 // Icon mapping for tabs
 const TAB_ICONS: Record<DrawerTab, typeof FiInfo> = {
   info: FiInfo,
-  wallet: FiInfo,
-  gold: FiDatabase,
+  wallet: FiCreditCard,
   orders: FiFileText,
-  staking: FiLayers,
+  staking: FiTrendingUp,
 };
 
 function getTypeBadge(type: UserAccountDto['type']) {
@@ -37,47 +36,15 @@ function getStatusBadge(status: UserAccountDto['status']) {
 export default function UserDrawer({ user, onClose }: UserDrawerProps) {
   const [activeTab, setActiveTab] = useState<DrawerTab>('info');
   const [isVisible, setIsVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const client = new Api();
-  const [userInfo, setUserInfo] = useState<UserWalletDto>();
-  const [investments, setInvestments] = useState<InvestmentAccountDto[]>();
-
-  const fetchUserData = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      setLoading(true);
-      const response = await client.api.getUserWalletByUserId(user.id);
-      setUserInfo(response.data);
-    } catch (error) {
-      console.error('Failed to fetch user wallet:', error);
-    }
-  }, [user?.id]);
-
-  const fetchInvestments = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      const response = await client.api.investmentAccountsByUserId(user.id);
-      setInvestments(response.data);
-    } catch (error) {
-      console.error('Failed to fetch investments:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
 
   useEffect(() => {
     if (user) {
       setActiveTab('info');
-      fetchUserData();
-      fetchInvestments();
       requestAnimationFrame(() => setIsVisible(true));
     } else {
       setIsVisible(false);
     }
-  }, [user, fetchUserData, fetchInvestments]);
+  }, [user]);
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
@@ -85,8 +52,7 @@ export default function UserDrawer({ user, onClose }: UserDrawerProps) {
   }, [onClose]);
 
   const handleUserUpdate = (updatedUser: UserAccountDto) => {
-    // Refresh data when user is updated
-    fetchUserData();
+    // Handle user update if needed
   };
 
   useEffect(() => {
@@ -167,26 +133,14 @@ export default function UserDrawer({ user, onClose }: UserDrawerProps) {
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
-            {loading && activeTab !== 'info' && (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            )}
-            
             {activeTab === 'info' && (
               <div className="h-full overflow-y-auto">
                 <InfoTab user={user} onUserUpdate={handleUserUpdate} />
               </div>
             )}
             
-            {activeTab === 'wallet' && userInfo && (
+            {activeTab === 'wallet' && (
               <WalletTab userId={user.id!} />
-            )}
-            
-            {activeTab === 'gold' && userInfo && (
-              <div className="h-full overflow-y-auto">
-                <GoldBalanceTab userInfo={userInfo} />
-              </div>
             )}
             
             {activeTab === 'orders' && (

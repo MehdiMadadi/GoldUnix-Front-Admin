@@ -1,279 +1,442 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { FiBarChart2, FiFilter, FiDownload, FiExternalLink } from 'react-icons/fi';
+import { useState, useEffect, useCallback } from 'react';
+import { FiSearch, FiFilter, FiDownload, FiExternalLink, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Layout/Header';
 import Badge from '../../components/UI/Badge';
 import Pagination from '../../components/UI/Pagination';
-import UserFilterPanel from '../../components/Users/UserFilterPanel';
-import UserStatsPanel from '../../components/Users/UserStatsPanel';
 import UserDrawer from '../../components/UserDrawer';
-import { DEFAULT_FILTERS, type UserFilters } from '../../components/Users/types';
-import { USERS, USER_STATS, type User } from '../../data/users';
-import { Api, UserAccountDto, UserAccountShowcase, PriceQuoteRequest, ApiResponsePriceQuote } from '../../lib/client';
+import { Api, UserAccountDto, UserAccountShowcase } from '../../lib/client';
 
-type PanelType = 'filter' | 'stats' | null;
+const ITEMS_PER_PAGE = 10;
 
-const ITEMS_PER_PAGE = 8;
+// Filter Types
+type UserType = 'all' | 'trade' | 'normal';
+type UserStatus = 'all' | 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
+type UserLevel = 'all' | 'NORMAL' | 'VIP' | 'COLLEAGUE';
+type KycStatus = 'all' | 'verified' | 'unverified';
 
-function getRiskBadge(level: User['riskLevel']) {
-  if (level === 'low') return <Badge variant="success">پایین</Badge>;
-  if (level === 'medium') return <Badge variant="warning">متوسط</Badge>;
-  return <Badge variant="danger">بالا</Badge>;
+interface Filters {
+  search: string;
+  userType: UserType;
+  status: UserStatus;
+  level: UserLevel;
+  kyc: KycStatus;
 }
 
-function getStatusBadge(status: UserAccountDto['status']) {
+const DEFAULT_FILTERS: Filters = {
+  search: '',
+  userType: 'all',
+  status: 'all',
+  level: 'all',
+  kyc: 'all',
+};
+
+function getStatusBadge(status?: UserAccountDto['status']) {
   if (status === 'ACTIVE') return <Badge variant="success">فعال</Badge>;
   if (status === 'BLOCKED') return <Badge variant="danger">مسدود</Badge>;
-  return <Badge variant="neutral">در انتظار</Badge>;
+  if (status === 'SUSPENDED') return <Badge variant="warning">معلق</Badge>;
+  return <Badge variant="neutral">نامشخص</Badge>;
 }
 
-function getTypeBadge(type: UserAccountDto['type']) {
+function getTypeBadge(type?: string) {
   if (type === 'trade') return <Badge variant="primary">صنف</Badge>;
   return <Badge variant="neutral">عادی</Badge>;
 }
 
-function formatNumber(n: number) {
-  return n;
+function getLevelBadge(level?: string) {
+  if (level === 'VIP') return <Badge variant="gold">VIP</Badge>;
+  if (level === 'COLLEAGUE') return <Badge variant="info">همکار</Badge>;
+  return <Badge variant="neutral">عادی</Badge>;
+}
+
+function formatNumber(num?: number): string {
+  if (!num && num !== 0) return '---';
+  return num.toLocaleString('fa-IR');
+}
+
+// Export to CSV
+function exportToCSV(users: UserAccountDto[]) {
+  if (users.length === 0) return;
+
+  const headers = ['شناسه', 'نام', 'نام خانوادگی', 'شماره موبایل', 'کد ملی', 'ایمیل', 'نوع کاربر', 'سطح', 'وضعیت', 'احراز هویت'];
+  const rows = users.map(user => [
+    user.id || '',
+    user.firstName || '',
+    user.lastName || '',
+    user.phoneNumber || '',
+    user.nationalId || '',
+    user.email || '',
+    user.type || 'عادی',
+    user.userLevel || 'NORMAL',
+    user.status || '',
+    user.isKycVerified ? 'تایید شده' : 'تایید نشده'
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `users_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
 }
 
 export default function UsersPage() {
-  const [panel, setPanel] = useState<PanelType>(null);
-  const [pendingFilters, setPendingFilters] = useState<UserFilters>(DEFAULT_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<UserFilters>(DEFAULT_FILTERS);
-  const [page, setPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<UserAccountDto | null>(null);
-  const [users, setUsers] = useState<UserAccountDto[] | null>(null);
-  const [userCount, setUserCount] = useState<number>(0);
-  const [showcase, setShowcase] = useState<UserAccountShowcase>();
-  const [goldBuyPrice, setGoldBuyPrice] = useState<number | null>(null);
-  const [goldSellPrice, setGoldSellPrice] = useState<number | null>(null);
-
-  const isDesktop = () => window.innerWidth >= 1024;
-
-  const openFilter = useCallback(() => setPanel('filter'), []);
-  const openStats = useCallback(() => setPanel('stats'), []);
-  const closePanel = useCallback(() => setPanel(null), []);
-
-  const handleApply = useCallback(() => {
-    setAppliedFilters(pendingFilters);
-    setPage(1);
-    closePanel();
-  }, [pendingFilters, closePanel]);
-
-  const handleReset = useCallback(() => {
-    setPendingFilters(DEFAULT_FILTERS);
-    setAppliedFilters(DEFAULT_FILTERS);
-    setPage(1);
-  }, []);
-
-  const openDrawer = useCallback((user: UserAccountDto) => {
-    setPanel(null);
-    setSelectedUser(user);
-  }, []);
-
-  const closeDrawer = useCallback(() => setSelectedUser(null), []);
-
-  const filtered = useMemo(() => {
-    return USERS.filter(u => {
-      if (appliedFilters.search) {
-        const q = appliedFilters.search.toLowerCase();
-        if (!u.name.toLowerCase().includes(q) && !u.mobile.includes(q)) return false;
-      }
-      if (appliedFilters.userType !== 'all' && u.type !== appliedFilters.userType) return false;
-      if (appliedFilters.status !== 'all' && u.status !== appliedFilters.status) return false;
-      if (appliedFilters.riskLevel !== 'all' && u.riskLevel !== appliedFilters.riskLevel) return false;
-      if (appliedFilters.obligation === 'open' && u.openObligation === 0) return false;
-      if (appliedFilters.obligation === 'none' && u.openObligation > 0) return false;
-      return true;
-    });
-  }, [appliedFilters]);
-
+  const navigate = useNavigate();
   const client = new Api();
 
-  const fetchUsers = async (start: number, size: number) => {
-    // await client.rest.authenticate({username:'09372689372', password:'Milad@102030'})
-    const response = await client.api.getUsers({ pageNumber: start, pageSize: size });
-    setUsers(response.data?.users);
-    setUserCount(response.data?.count);
-  }
+  const [users, setUsers] = useState<UserAccountDto[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserAccountDto | null>(null);
+  const [showcase, setShowcase] = useState<UserAccountShowcase | null>(null);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const start = (page - 1) * ITEMS_PER_PAGE;
+      const filter: any = {
+        pageNumber: start,
+        pageSize: ITEMS_PER_PAGE,
+      };
+
+      // Search
+      if (filters.search) {
+        if (filters.search.match(/^\d+$/)) {
+          filter.userId = parseInt(filters.search);
+        } else if (filters.search.match(/^09\d{9}$/)) {
+          filter.mobileNumber = filters.search;
+        } else {
+          filter.username = filters.search;
+        }
+      }
+
+      // Filters
+      if (filters.userType !== 'all') {
+        filter.typeCode = filters.userType === 'trade' ? 'trade' : 'normal';
+      }
+      if (filters.status !== 'all') {
+        filter.status = filters.status;
+      }
+
+      const response = await client.api.getUsers(filter);
+      
+      // Apply client-side filters for level and kyc (since API might not support them)
+      let filteredUsers = response.data?.users || [];
+      
+      if (filters.level !== 'all') {
+        filteredUsers = filteredUsers.filter(u => u.userLevel === filters.level);
+      }
+      if (filters.kyc !== 'all') {
+        filteredUsers = filteredUsers.filter(u => 
+          filters.kyc === 'verified' ? u.isKycVerified : !u.isKycVerified
+        );
+      }
+
+      setUsers(filteredUsers);
+      setTotalCount(filteredUsers.length);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filters]);
 
   const fetchShowcase = async () => {
-    const response = await client.api.userShowcase();
-    setShowcase(response.data);
-  }
-
-  const fetchGoldPrices = async () => {
     try {
-      const buyRequest: PriceQuoteRequest = { assetCode: 'GOLD', amount: 1 };
-      const sellRequest: PriceQuoteRequest = { assetCode: 'GOLD', amount: 1 };
-      const buyRes = await client.api.getBuyPriceQuote(buyRequest);
-      const sellRes = await client.api.getSellPriceQuote(sellRequest);
-      if (buyRes.data?.data?.finalPrice) setGoldBuyPrice(buyRes.data.data.finalPrice);
-      if (sellRes.data?.data?.finalPrice) setGoldSellPrice(sellRes.data.data.finalPrice);
+      const response = await client.api.userShowcase();
+      setShowcase(response.data);
     } catch (error) {
-      console.error('Failed to fetch gold prices', error);
+      console.error('Failed to fetch showcase:', error);
     }
   };
 
   useEffect(() => {
-    fetchUsers(0, 10);
     fetchShowcase();
-    fetchGoldPrices();
   }, []);
 
   useEffect(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    const size = ITEMS_PER_PAGE;
-    fetchUsers(start, size);
-  }, [page]);
+    const delay = setTimeout(fetchUsers, 300);
+    return () => clearTimeout(delay);
+  }, [fetchUsers]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters(prev => ({ ...prev, search: e.target.value }));
+    setPage(1);
+  };
+
+  const clearSearch = () => {
+    setFilters(prev => ({ ...prev, search: '' }));
+    setPage(1);
+  };
+
+  const handleFilterChange = <K extends keyof Filters>(key: K, value: Filters[K]) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
+  const resetFilters = () => {
+    setFilters(DEFAULT_FILTERS);
+    setPage(1);
+    setShowFilters(false);
+  };
+
+  const openDrawer = (user: UserAccountDto) => {
+    setSelectedUser(user);
+  };
+
+  const closeDrawer = () => {
+    setSelectedUser(null);
+  };
+
+  const handleExport = () => {
+    exportToCSV(users);
+  };
+
+  const hasActiveFilters = filters.userType !== 'all' || filters.status !== 'all' || 
+                           filters.level !== 'all' || filters.kyc !== 'all';
 
   return (
     <>
-      {panel && (
-        <div className="overlay show" onClick={closePanel} />
-      )}
-
-      {panel === 'filter' && (
-        <UserFilterPanel
-          filters={pendingFilters}
-          onChange={setPendingFilters}
-          onApply={handleApply}
-          onReset={handleReset}
-          onClose={closePanel}
-          variant={isDesktop() ? 'desktop' : 'mobile'}
-        />
-      )}
-
-      {panel === 'stats' && (
-        <UserStatsPanel
-          onClose={closePanel}
-          variant={isDesktop() ? 'desktop' : 'mobile'}
-        />
-      )}
-
       <UserDrawer user={selectedUser} onClose={closeDrawer} />
 
-      <Header title="کاربران" />
+      <Header title="مدیریت کاربران" showMarketStatus />
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-        <div className="max-w-[1600px] mx-auto space-y-6">
+        <div className="max-w-[1600px] mx-auto space-y-5">
 
-          <div className="kpi-section">
-            <div className="grid grid-cols-5 gap-4">
-              {[
-                { label: 'کل کاربران', value: showcase?.userCount?.toLocaleString('fa-IR'), color: '' },
-                { label: 'فعال امروز', value: showcase?.userActiveCount?.toLocaleString('fa-IR'), color: 'text-emerald-500' },
-                { label: 'کاربران صنف', value: showcase?.userTradeCount?.toLocaleString('fa-IR'), color: 'text-primary' },
-                { label: 'تعهد باز', value: showcase?.openMarginCount?.toLocaleString('fa-IR'), color: 'text-amber-500' },
-                { label: 'هشدار مارجین', value: showcase?.warningMarginCount?.toString(), color: 'text-rose-500' },
-              ].map(kpi => (
-                <div key={kpi.label} className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-5">
-                  <p className="text-sm text-slate-500">{kpi.label}</p>
-                  <p className={`text-2xl font-extrabold mt-2 ${kpi.color}`}>{kpi.value}</p>
-                </div>
-              ))}
-            </div>
+          {/* Simple Stats Row */}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+            <span className="font-medium text-slate-700 dark:text-slate-300">
+              کل کاربران: <span className="font-bold text-slate-900 dark:text-white">{formatNumber(showcase?.userCount)}</span>
+            </span>
+            <span className="w-px h-4 bg-border-light dark:bg-border-dark" />
+            <span>
+              فعال: <span className="font-bold text-emerald-600">{formatNumber(showcase?.userActiveCount)}</span>
+            </span>
+            <span className="w-px h-4 bg-border-light dark:bg-border-dark" />
+            {/* <span>
+              صنف: <span className="font-bold text-primary">{formatNumber(showcase?.userTradeCount)}</span>
+            </span>
+            <span className="w-px h-4 bg-border-light dark:bg-border-dark" />
+            <span>
+              تعهد باز: <span className="font-bold text-amber-500">{formatNumber(showcase?.openMarginCount)}</span>
+            </span> */}
+            {hasActiveFilters && (
+              <>
+                <span className="w-px h-4 bg-border-light dark:bg-border-dark" />
+                <button
+                  onClick={resetFilters}
+                  className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
+                >
+                  <FiX className="w-3 h-3" />
+                  حذف فیلترها
+                </button>
+              </>
+            )}
           </div>
 
-          <section className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-3xl overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
-              <div>
-                <h3 className="font-bold text-lg">لیست کاربران</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{filtered.length.toLocaleString('fa-IR')} کاربر یافت شد</p>
+          {/* Users Table */}
+          <section className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl overflow-hidden">
+            {/* Toolbar */}
+            <div className="flex flex-col gap-3 p-4 border-b border-border-light dark:border-border-dark">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={filters.search}
+                    onChange={handleSearch}
+                    placeholder="جستجو بر اساس نام، موبایل یا شناسه..."
+                    className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark pr-10 pl-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100"
+                  />
+                  {filters.search && (
+                    <button
+                      onClick={clearSearch}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <FiX className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                      showFilters || hasActiveFilters
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                    }`}
+                  >
+                    <FiFilter className="w-4 h-4" />
+                    فیلتر
+                    {hasActiveFilters && (
+                      <span className="w-4 h-4 text-[10px] bg-white/20 rounded-full flex items-center justify-center">
+                        {Object.values({ userType: filters.userType, status: filters.status, level: filters.level, kyc: filters.kyc }).filter(v => v !== 'all').length}
+                      </span>
+                    )}
+                    {showFilters ? <FiChevronUp className="w-4 h-4" /> : <FiChevronDown className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all"
+                    title="خروجی اکسل"
+                  >
+                    <FiDownload className="w-4 h-4" />
+                    خروجی
+                  </button>
+                  <span className="text-xs text-slate-400 mr-2">
+                    {totalCount.toLocaleString('fa-IR')} کاربر
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={openStats}
-                  className="icon-btn bg-gradient-to-br from-primary to-blue-500 text-white shadow-md hover:shadow-lg"
-                >
-                  <FiBarChart2 size={20} />
-                </button>
-                <button
-                  onClick={openFilter}
-                  className="icon-btn bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                >
-                  <FiFilter size={20} />
-                </button>
-                <button className="icon-btn bg-primary/10 text-primary hover:bg-primary/20">
-                  <FiDownload size={20} />
-                </button>
-              </div>
+
+              {/* Filters Panel - Collapsible */}
+              {showFilters && (
+                <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border-light dark:border-border-dark">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">نوع کاربر:</span>
+                    <select
+                      value={filters.userType}
+                      onChange={e => handleFilterChange('userType', e.target.value as UserType)}
+                      className="rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="all">همه</option>
+                      <option value="trade">صنف</option>
+                      <option value="normal">عادی</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">وضعیت:</span>
+                    <select
+                      value={filters.status}
+                      onChange={e => handleFilterChange('status', e.target.value as UserStatus)}
+                      className="rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="all">همه</option>
+                      <option value="ACTIVE">فعال</option>
+                      <option value="BLOCKED">مسدود</option>
+                      <option value="SUSPENDED">معلق</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">سطح:</span>
+                    <select
+                      value={filters.level}
+                      onChange={e => handleFilterChange('level', e.target.value as UserLevel)}
+                      className="rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="all">همه</option>
+                      <option value="NORMAL">عادی</option>
+                      <option value="VIP">VIP</option>
+                      <option value="COLLEAGUE">همکار</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">احراز هویت:</span>
+                    <select
+                      value={filters.kyc}
+                      onChange={e => handleFilterChange('kyc', e.target.value as KycStatus)}
+                      className="rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="all">همه</option>
+                      <option value="verified">تایید شده</option>
+                      <option value="unverified">تایید نشده</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={resetFilters}
+                    className="text-xs text-red-500 hover:text-red-600 px-2 py-1"
+                  >
+                    حذف همه
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="desktop-view">
-              <div className="table-container">
+            {/* Table */}
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <p className="text-sm">کاربری یافت نشد</p>
+                </div>
+              ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-background-dark border-b border-border-light dark:border-border-dark text-slate-500">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-border-light dark:border-border-dark">
                     <tr>
-                      <th className="px-5 py-3 text-right font-medium">نام</th>
-                      <th className="px-5 py-3 text-right font-medium">موبایل</th>
-                      <th className="px-5 py-3 text-right font-medium">نوع</th>
-                      <th className="px-5 py-3 text-right font-medium">وضعیت</th>
-                      <th className="px-5 py-3 text-right font-medium">عملیات</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">شناسه</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">نام و نام خانوادگی</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">شماره موبایل</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">نوع</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">سطح</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">احراز هویت</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500">وضعیت</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500">عملیات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                    {users?.map(user => (
+                    {users.map(user => (
                       <tr
                         key={user.id}
-                        className={`hover:bg-slate-50 dark:hover:bg-background-dark/40 transition-colors cursor-pointer ${selectedUser?.id === user.id ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
                         onClick={() => openDrawer(user)}
                       >
-                        <td className="px-5 py-4 font-medium text-slate-900 dark:text-white">{user.firstName} {user.lastName}</td>
-                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400  text-xs">{user.phoneNumber}</td>
-                        <td className="px-5 py-4">{getTypeBadge(user.type)}</td>
-                        <td className="px-5 py-4">{getStatusBadge(user.status)}</td>
-                        <td className="px-5 py-4">
-                          <button
-                            onClick={e => { e.stopPropagation(); openDrawer(user); }}
-                            className="flex items-center gap-1 text-primary hover:underline text-xs font-semibold"
-                          >
-                            <FiExternalLink size={14} />
-                            مشاهده
-                          </button>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                            {user.id}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">
+                          {user.firstName} {user.lastName}
+                          {user.username && (
+                            <span className="block text-xs text-slate-400 font-normal">{user.username}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 font-mono" dir="ltr">
+                          {user.phoneNumber || '---'}
+                        </td>
+                        <td className="px-4 py-3">{getTypeBadge(user.type)}</td>
+                        <td className="px-4 py-3">{getLevelBadge(user.userLevel)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={user.isKycVerified ? 'success' : 'warning'} size="sm">
+                            {user.isKycVerified ? 'تایید شده' : 'تایید نشده'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">{getStatusBadge(user.status)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center">
+                            <button
+                              onClick={e => { e.stopPropagation(); openDrawer(user); }}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-all"
+                            >
+                              <FiExternalLink size={14} />
+                              جزئیات
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-
-            <div className="mobile-view p-4 space-y-4">
-              {users?.map(user => (
-                <div
-                  key={user.id}
-                  className={`user-card cursor-pointer transition-shadow hover:shadow-md ${selectedUser?.id === user.id ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                  onClick={() => openDrawer(user)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white">{user.firstName} {user.lastName}</h4>
-                      <p className="text-xs text-slate-500 mt-1 ">{user.phoneNumber}</p>
-                    </div>
-                    {getTypeBadge(user.type)}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-slate-500 text-xs mb-1">وضعیت</p>
-                      {getStatusBadge(user.status)}
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-border-light dark:border-border-dark flex justify-between items-center">
-                    <span className="text-xs text-slate-400">آخرین فعالیت: {user.lastActivity}</span>
-                    <button
-                      onClick={e => { e.stopPropagation(); openDrawer(user); }}
-                      className="flex items-center gap-1 text-primary text-sm font-semibold hover:underline"
-                    >
-                      <FiExternalLink size={14} />
-                      مشاهده
-                    </button>
-                  </div>
-                </div>
-              ))}
+              )}
             </div>
 
             <Pagination
-              total={userCount}
+              total={totalCount}
               page={page}
               perPage={ITEMS_PER_PAGE}
               onChange={setPage}
