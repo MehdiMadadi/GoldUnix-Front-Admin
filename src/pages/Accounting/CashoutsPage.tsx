@@ -2,34 +2,51 @@
 import { useEffect, useState } from 'react';
 import { Api, CashoutDto, CashoutFilterDto } from '../../lib/client';
 import Badge from '../../components/UI/Badge';
-import { 
-  Search, 
-  ChevronRight, 
-  ChevronLeft, 
-  Eye, 
-  Wallet, 
-  Filter, 
-  X, 
-  RefreshCw, 
-  ArrowUp, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  AlertCircle, 
-  RotateCcw, 
-  Ban,
-  Download,
-  Hash
+import {
+    Search,
+    ChevronRight,
+    ChevronLeft,
+    Eye,
+    Wallet,
+    Filter,
+    X,
+    RefreshCw,
+    CheckCircle,
+    XCircle,
+    Clock,
+    AlertCircle,
+    Download,
+    Hash,
+    Check,
+    Loader2,
+    Building2,
+    Globe,
+    Banknote
 } from 'lucide-react';
 
+// ===== Status Constants =====
+type BankStatusType = 'ACCEPT' | 'REJECT';
+type ProviderType = 'CBAAS' | 'OUTPLATFORM';
+
+const STATUS_OPTIONS: { value: BankStatusType; label: string; variant: 'success' | 'danger' }[] = [
+    { value: 'ACCEPT', label: 'تایید تراکنش', variant: 'success' },
+    { value: 'REJECT', label: 'رد تراکنش', variant: 'danger' },
+];
+
+const PROVIDER_OPTIONS: { value: ProviderType; label: string; icon: typeof Building2 }[] = [
+    { value: 'CBAAS', label: 'بانک (CBAAS)', icon: Building2 },
+    { value: 'OUTPLATFORM', label: 'پرداخت خارج از پلتفرم', icon: Globe },
+];
+
+// Status badge mapping for display
 const CASHOUT_STATUS_MAP: Record<string, { label: string; variant: 'warning' | 'info' | 'success' | 'danger' | 'neutral'; icon: typeof Clock }> = {
     Requested: { label: 'درخواست شده', variant: 'warning', icon: Clock },
     InProcessing: { label: 'در حال پردازش', variant: 'info', icon: AlertCircle },
-    SentBank: { label: 'ارسال به بانک', variant: 'info', icon: ArrowUp },
+    SentBank: { label: 'ارسال به بانک', variant: 'info', icon: Clock },
     Completed: { label: 'تکمیل شده', variant: 'success', icon: CheckCircle },
     Reject: { label: 'رد شده', variant: 'danger', icon: XCircle },
-    Reverse: { label: 'برگشت خورده', variant: 'danger', icon: RotateCcw },
-    Cancelled: { label: 'لغو شده', variant: 'neutral', icon: Ban },
+    Reverse: { label: 'برگشت خورده', variant: 'danger', icon: XCircle },
+    Cancelled: { label: 'لغو شده', variant: 'neutral', icon: XCircle },
 };
 
 const STATUS_FILTERS = [
@@ -43,157 +60,332 @@ const STATUS_FILTERS = [
     { code: 'Cancelled', label: 'لغو شده' },
 ];
 
-const CHANGE_STATUS_OPTIONS = [
-    { value: 'InProcessing', label: 'در حال پردازش' },
-    { value: 'SentBank', label: 'ارسال به بانک' },
-    { value: 'Completed', label: 'تکمیل شده' },
-    { value: 'Reject', label: 'رد شده' },
-    { value: 'Reverse', label: 'برگشت خورده' },
-    { value: 'Cancelled', label: 'لغو شده' },
-];
-
 // ===== Export to CSV =====
 function exportToCSV(cashouts: CashoutDto[]) {
-  if (cashouts.length === 0) return;
+    if (cashouts.length === 0) return;
 
-  const headers = ['شناسه', 'شماره مقصد', 'نام مقصد', 'مبلغ (ریال)', 'وضعیت', 'کد پیگیری خارجی', 'STAN', 'تاریخ ثبت', 'تاریخ ارسال'];
-  const rows = cashouts.map(item => [
-    item.id || '',
-    item.destinationNumber || '',
-    item.destinationName || '',
-    item.amount || 0,
-    item.statusType || '',
-    item.externalReference || '',
-    item.stan || '',
-    item.entryDate ? new Date(item.entryDate).toLocaleString('fa-IR') : '',
-    item.postDate ? new Date(item.postDate).toLocaleString('fa-IR') : ''
-  ]);
+    const headers = ['شناسه', 'شماره مقصد', 'نام مقصد', 'مبلغ (ریال)', 'وضعیت', 'کد پیگیری خارجی', 'STAN', 'تاریخ ثبت', 'تاریخ ارسال'];
+    const rows = cashouts.map(item => [
+        item.id || '',
+        item.destinationNumber || '',
+        item.destinationName || '',
+        item.amount || 0,
+        item.statusType || '',
+        item.externalReference || '',
+        item.stan || '',
+        item.entryDate ? new Date(item.entryDate).toLocaleString('fa-IR') : '',
+        item.postDate ? new Date(item.postDate).toLocaleString('fa-IR') : ''
+    ]);
 
-  const BOM = '\uFEFF';
-  const csvContent = BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  const dateStr = new Date().toISOString().split('T')[0];
-  link.download = `cashouts_${dateStr}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
+    const BOM = '\uFEFF';
+    const csvContent = BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.download = `cashouts_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
 }
 
 // ===== Advanced Filter Popup =====
 function AdvancedFilterPopup({
-  open,
-  onClose,
-  idFilter,
-  setIdFilter,
-  statusType,
-  setStatusType,
-  onApply,
+    open,
+    onClose,
+    idFilter,
+    setIdFilter,
+    statusType,
+    setStatusType,
+    onApply,
 }: {
-  open: boolean;
-  onClose: () => void;
-  idFilter: string;
-  setIdFilter: (v: string) => void;
-  statusType: string;
-  setStatusType: (v: string) => void;
-  onApply: () => void;
+    open: boolean;
+    onClose: () => void;
+    idFilter: string;
+    setIdFilter: (v: string) => void;
+    statusType: string;
+    setStatusType: (v: string) => void;
+    onApply: () => void;
 }) {
-  if (!open) return null;
+    if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div 
-        className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark w-full max-w-md mx-4 overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-light dark:border-border-dark">
-          <h3 className="font-bold text-slate-900 dark:text-white text-base">جستجوی پیشرفته</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors">
-            <X className="w-4 h-4 text-slate-500" />
-          </button>
-        </div>
-        
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-2">شناسه پیگیری</label>
-            <div className="relative">
-              <Hash className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="شماره پیگیری..."
-                value={idFilter}
-                onChange={e => setIdFilter(e.target.value)}
-                className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-2">وضعیت</label>
-            <select
-              value={statusType}
-              onChange={e => setStatusType(e.target.value)}
-              className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark w-full max-w-md mx-4 overflow-hidden"
+                onClick={e => e.stopPropagation()}
             >
-              {STATUS_FILTERS.map(status => (
-                <option key={status.code} value={status.code}>{status.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border-light dark:border-border-dark">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-base">جستجوی پیشرفته</h3>
+                    <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                        <X className="w-4 h-4 text-slate-500" />
+                    </button>
+                </div>
 
-        <div className="flex gap-3 px-6 py-4 border-t border-border-light dark:border-border-dark bg-slate-50 dark:bg-background-dark/50">
-          <button
-            onClick={() => { onApply(); onClose(); }}
-            className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all"
-          >
-            اعمال فیلترها
-          </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-all"
-          >
-            انصراف
-          </button>
+                <div className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-2">شناسه پیگیری</label>
+                        <div className="relative">
+                            <Hash className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="شماره پیگیری..."
+                                value={idFilter}
+                                onChange={e => setIdFilter(e.target.value)}
+                                className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 placeholder:text-slate-400 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-2">وضعیت</label>
+                        <select
+                            value={statusType}
+                            onChange={e => setStatusType(e.target.value)}
+                            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
+                        >
+                            {STATUS_FILTERS.map(status => (
+                                <option key={status.code} value={status.code}>{status.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="flex gap-3 px-6 py-4 border-t border-border-light dark:border-border-dark bg-slate-50 dark:bg-background-dark/50">
+                    <button
+                        onClick={() => { onApply(); onClose(); }}
+                        className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all"
+                    >
+                        اعمال فیلترها
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-all"
+                    >
+                        انصراف
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
+}
+
+// ===== Confirm Status Change Modal =====
+function ConfirmStatusModal({
+    open,
+    onClose,
+    onConfirm,
+    cashout,
+    isLoading
+}: {
+    open: boolean;
+    onClose: () => void;
+    onConfirm: (data: { bankStatus: BankStatusType; provider?: ProviderType; traceNumber?: string; referenceNumber?: string }) => Promise<void>;
+    cashout: CashoutDto | null;
+    isLoading: boolean;
+}) {
+    const [selectedStatus, setSelectedStatus] = useState<BankStatusType | null>(null);
+    const [selectedProvider, setSelectedProvider] = useState<ProviderType | null>(null);
+    const [traceNumber, setTraceNumber] = useState('');
+    const [referenceNumber, setReferenceNumber] = useState('');
+
+    if (!open || !cashout) return null;
+
+    // ===== Confirm Status Modal - قسمت handleConfirm =====
+    const handleConfirm = () => {
+        if (!selectedStatus) return;
+
+        if (selectedStatus === 'REJECT') {
+            // برای رد: statusType = 'Reject'
+            onConfirm({
+                statusType: 'Reject'  // ← اینجا Reject می‌فرسته
+            });
+            return;
+        }
+
+        if (selectedStatus === 'ACCEPT') {
+            if (!selectedProvider) return;
+            if (selectedProvider === 'OUTPLATFORM' && (!traceNumber.trim() || !referenceNumber.trim())) {
+                alert('لطفاً شماره پیگیری و کد مرجع را وارد کنید');
+                return;
+            }
+            // برای تایید: statusType = 'SentBank'
+            onConfirm({
+                statusType: 'SentBank',  // ← اینجا SentBank می‌فرسته
+                provider: selectedProvider,
+                ...(selectedProvider === 'OUTPLATFORM' && { traceNumber, referenceNumber })
+            });
+        }
+    };
+
+    const resetForm = () => {
+        setSelectedStatus(null);
+        setSelectedProvider(null);
+        setTraceNumber('');
+        setReferenceNumber('');
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose();
+    };
+
+    const isAccept = selectedStatus === 'ACCEPT';
+    const showProviderSelect = selectedStatus === 'ACCEPT';
+    const showExternalFields = selectedProvider === 'OUTPLATFORM';
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+            <div className="relative w-full max-w-lg bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border-light dark:border-border-dark bg-gradient-to-r from-primary/5 to-transparent">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Check className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white">تایید تغییر وضعیت</h3>
+                            <p className="text-xs text-slate-400">شناسه: #{cashout.id}</p>
+                        </div>
+                    </div>
+                    <button onClick={handleClose} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200">
+                        <X className="w-4 h-4 text-slate-500" />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                    {/* مبلغ */}
+                    <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl p-4 text-center">
+                        <p className="text-xs text-slate-400">مبلغ تراکنش</p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white">
+                            {cashout.amount?.toLocaleString('fa-IR') ?? '---'}
+                            <span className="text-sm font-normal text-slate-400 mr-1">ریال</span>
+                        </p>
+                    </div>
+
+                    {/* انتخاب وضعیت */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                            وضعیت جدید
+                        </label>
+                        <div className="flex gap-3">
+                            {STATUS_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setSelectedStatus(opt.value)}
+                                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${selectedStatus === opt.value
+                                            ? opt.value === 'ACCEPT'
+                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
+                                                : 'border-red-500 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400'
+                                            : 'border-border-light dark:border-border-dark bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* انتخاب بانک (فقط برای ACCEPT) */}
+                    {showProviderSelect && (
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                انتخاب بانک
+                            </label>
+                            <div className="flex gap-3">
+                                {PROVIDER_OPTIONS.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        onClick={() => setSelectedProvider(opt.value)}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border-2 ${selectedProvider === opt.value
+                                                ? 'border-primary bg-primary/10 text-primary'
+                                                : 'border-border-light dark:border-border-dark bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        <opt.icon className="w-4 h-4" />
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* فیلدهای خارج از پلتفرم */}
+                    {showExternalFields && (
+                        <div className="space-y-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800/30">
+                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                <Banknote className="w-3.5 h-3.5" />
+                                اطلاعات انتقال خارج از پلتفرم
+                            </p>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 mb-1">شماره پیگیری (Trace Number)</label>
+                                <input
+                                    type="text"
+                                    value={traceNumber}
+                                    onChange={e => setTraceNumber(e.target.value)}
+                                    placeholder="مثال: 123456789"
+                                    className="w-full rounded-lg border border-border-light bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 mb-1">کد مرجع (Reference Number)</label>
+                                <input
+                                    type="text"
+                                    value={referenceNumber}
+                                    onChange={e => setReferenceNumber(e.target.value)}
+                                    placeholder="شناسه پایا/ساتنا/انتقال"
+                                    className="w-full rounded-lg border border-border-light bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* دکمه‌ها */}
+                    <div className="flex gap-3 pt-3 border-t border-border-light">
+                        <button
+                            onClick={handleConfirm}
+                            disabled={!selectedStatus || isLoading || (isAccept && !selectedProvider)}
+                            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${selectedStatus === 'ACCEPT'
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                    : selectedStatus === 'REJECT'
+                                        ? 'bg-red-600 text-white hover:bg-red-700'
+                                        : 'bg-slate-300 text-slate-600'
+                                }`}
+                        >
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            تایید نهایی
+                        </button>
+                        <button
+                            onClick={handleClose}
+                            className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-all"
+                        >
+                            انصراف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 // ===== Cashout Detail Drawer =====
 function CashoutDetailDrawer({
     cashout,
     onClose,
-    onStatusChange
+    onOpenConfirm
 }: {
     cashout: CashoutDto | null;
     onClose: () => void;
-    onStatusChange: (id: number, status: string) => void;
+    onOpenConfirm: (cashout: CashoutDto) => void;
 }) {
-    const [newStatus, setNewStatus] = useState('');
-    const [changing, setChanging] = useState(false);
-
     if (!cashout) return null;
 
     const status = cashout.statusType ? CASHOUT_STATUS_MAP[cashout.statusType] : null;
     const StatusIcon = status?.icon || Clock;
 
-    const handleChangeStatus = async () => {
-        if (!newStatus || !cashout.id) return;
-        setChanging(true);
-        try {
-            await onStatusChange(cashout.id, newStatus);
-            setNewStatus('');
-        } finally {
-            setChanging(false);
-        }
-    };
-
     return (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="fixed inset-0 z-40 flex justify-end">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
             <div className="relative w-full max-w-md bg-white dark:bg-surface-dark shadow-2xl border-l border-border-light dark:border-border-dark overflow-y-auto">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border-light dark:border-border-dark">
@@ -290,26 +482,13 @@ function CashoutDetailDrawer({
                         </div>
                     </div>
 
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-2xl p-5 space-y-3">
-                        <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400">تغییر وضعیت</h4>
-                        <select
-                            value={newStatus}
-                            onChange={e => setNewStatus(e.target.value)}
-                            className="w-full rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary dark:text-slate-100 transition-all cursor-pointer"
-                        >
-                            <option value="">انتخاب وضعیت جدید...</option>
-                            {CHANGE_STATUS_OPTIONS.filter(opt => opt.value !== cashout.statusType).map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={handleChangeStatus}
-                            disabled={!newStatus || changing}
-                            className="w-full px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {changing ? 'در حال اعمال...' : 'اعمال تغییر'}
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => onOpenConfirm(cashout)}
+                        className="w-full px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Check className="w-4 h-4" />
+                        تغییر وضعیت
+                    </button>
                 </div>
             </div>
         </div>
@@ -326,6 +505,9 @@ export default function CashoutsPage() {
     const [pageNumber, setPageNumber] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmCashout, setConfirmCashout] = useState<CashoutDto | null>(null);
+    const [isChanging, setIsChanging] = useState(false);
     const pageSize = 10;
 
     const client = new Api();
@@ -359,13 +541,40 @@ export default function CashoutsPage() {
         fetchCashouts();
     };
 
-    const handleStatusChange = async (id: number, status: string) => {
+    const handleStatusChange = async (data: {
+        statusType: string;  // ← به جای bankStatus
+        provider?: ProviderType;
+        traceNumber?: string;
+        referenceNumber?: string
+    }) => {
+        if (!confirmCashout?.id) return;
+
+        setIsChanging(true);
         try {
-            await client.api.cashoutsChangeStatus({ id, statusType: status as any });
-            fetchCashouts();
+            const payload: any = {
+                cashoutId: confirmCashout.id,
+                statusType: data.statusType,  // ← SentBank یا Reject
+            };
+
+            // فقط برای تایید (SentBank) provider رو ارسال کن
+            if (data.statusType === 'SentBank') {
+                payload.provider = data.provider;
+                if (data.provider === 'OUTPLATFORM') {
+                    payload.traceNumber = data.traceNumber;
+                    payload.referenceNumber = data.referenceNumber;
+                }
+            }
+
+            await client.api.cashoutsChangeStatus(payload);
+            await fetchCashouts();
+            setShowConfirmModal(false);
+            setConfirmCashout(null);
             setSelected(null);
         } catch (error) {
             console.error('Failed to change status:', error);
+            alert('خطا در تغییر وضعیت تراکنش');
+        } finally {
+            setIsChanging(false);
         }
     };
 
@@ -380,12 +589,17 @@ export default function CashoutsPage() {
         exportToCSV(cashouts);
     };
 
+    const openConfirmModal = (cashout: CashoutDto) => {
+        setConfirmCashout(cashout);
+        setShowConfirmModal(true);
+    };
+
     const hasFilters = statusType !== '' || idFilter !== '';
     const hasActiveFilterValues = statusType !== '' || idFilter !== '';
 
     return (
         <div className="bg-white dark:bg-background-dark rounded-2xl border border-border-light dark:border-border-dark overflow-hidden">
-            {/* فقط تب‌ها - بدون تایتل */}
+            {/* Tab Header */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-border-light dark:border-border-dark bg-slate-50/30 dark:bg-slate-800/10">
                 <div className="flex items-center gap-6">
                     <span className="text-sm font-bold text-slate-900 dark:text-white border-b-2 border-primary pb-2">
@@ -400,7 +614,6 @@ export default function CashoutsPage() {
             {/* Filter Bar */}
             <div className="flex flex-col gap-3 p-4 border-b border-border-light dark:border-border-dark bg-slate-50/50 dark:bg-slate-800/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    {/* جستجوی شماره پیگیری - بیرون */}
                     <div className="relative flex-1 max-w-xs">
                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
@@ -424,11 +637,10 @@ export default function CashoutsPage() {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setShowAdvancedFilter(true)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                                hasActiveFilterValues
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${hasActiveFilterValues
                                     ? 'bg-primary text-white shadow-sm'
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                            }`}
+                                }`}
                         >
                             <Filter className="w-4 h-4" />
                             فیلتر
@@ -537,7 +749,8 @@ export default function CashoutsPage() {
                                             <td className="px-4 py-3">
                                                 {status && (
                                                     <Badge variant={status.variant} size="sm">
-                                                        <span className="items-center gap-1">
+                                                        <span className="flex items-center gap-1">
+                                                            <StatusIcon className="w-3 h-3" />
                                                             {status.label}
                                                         </span>
                                                     </Badge>
@@ -601,7 +814,19 @@ export default function CashoutsPage() {
             <CashoutDetailDrawer
                 cashout={selected}
                 onClose={() => setSelected(null)}
-                onStatusChange={handleStatusChange}
+                onOpenConfirm={openConfirmModal}
+            />
+
+            {/* Confirm Status Modal */}
+            <ConfirmStatusModal
+                open={showConfirmModal}
+                onClose={() => {
+                    setShowConfirmModal(false);
+                    setConfirmCashout(null);
+                }}
+                onConfirm={handleStatusChange}
+                cashout={confirmCashout}
+                isLoading={isChanging}
             />
         </div>
     );

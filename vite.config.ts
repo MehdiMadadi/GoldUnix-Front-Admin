@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const apiBaseUrl = 'http://94.182.92.104:9092';
-// const apiBaseUrl = 'http://localhost:9092';
+// const apiBaseUrl = 'http://94.182.92.104:9092';
+const apiBaseUrl = 'http://localhost:9092';
 
 export default defineConfig({
   plugins: [react()],

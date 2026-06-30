@@ -176,85 +176,8 @@ export interface Faq {
   createdAt?: string;
   /** @format int64 */
   id?: number;
-  targetUserAccount?: UserAccount;
   title?: string;
   description?: string;
-}
-
-export interface GrantedAuthority {
-  authority?: string;
-}
-
-export interface Permission {
-  /** @format date-time */
-  version?: string;
-  /** @format date-time */
-  createdAt?: string;
-  /** @format int64 */
-  id?: number;
-  description?: string;
-  code?: string;
-}
-
-export interface PermissionAccess {
-  /** @format date-time */
-  version?: string;
-  /** @format date-time */
-  createdAt?: string;
-  /** @format int64 */
-  id?: number;
-  type?: Permission;
-  userAccount?: UserAccount;
-}
-
-export interface UserAccount {
-  /** @format date-time */
-  version?: string;
-  /** @format date-time */
-  createdAt?: string;
-  /** @format int64 */
-  id?: number;
-  firstName?: string;
-  lastName?: string;
-  phoneNumber?: string;
-  nationalId?: string;
-  /** @format date-time */
-  birthDate?: string;
-  username?: string;
-  email?: string;
-  passwordHash?: string;
-  isKycVerified?: boolean;
-  userLevel?: "NORMAL" | "VIP" | "COLLEAGUE";
-  referralCode?: string;
-  accountReferralCode?: string;
-  referredBy?: UserAccount;
-  /** @format date-time */
-  updatedAt?: string;
-  secondAuthType?: "SMS" | "GOOGLE";
-  secondAuthSecret?: string;
-  status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
-  type?: UserType;
-  /** @format int64 */
-  partyId?: number;
-  userRole?: "USER" | "ADMIN";
-  permissions?: PermissionAccess[];
-  enabled?: boolean;
-  password?: string;
-  authorities?: GrantedAuthority[];
-  accountNonExpired?: boolean;
-  credentialsNonExpired?: boolean;
-  accountNonLocked?: boolean;
-}
-
-export interface UserType {
-  /** @format date-time */
-  version?: string;
-  /** @format date-time */
-  createdAt?: string;
-  description?: string;
-  code?: string;
-  /** @format int64 */
-  id?: number;
 }
 
 export interface LocalTime {
@@ -726,6 +649,32 @@ export interface PhysicalDeliveryCreateDto {
   receiverMobile?: string;
 }
 
+export interface GrantedAuthority {
+  authority?: string;
+}
+
+export interface Permission {
+  /** @format date-time */
+  version?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format int64 */
+  id?: number;
+  description?: string;
+  code?: string;
+}
+
+export interface PermissionAccess {
+  /** @format date-time */
+  version?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format int64 */
+  id?: number;
+  type?: Permission;
+  userAccount?: UserAccount;
+}
+
 export interface PhysicalDeliveryResponseDto {
   /** @format int64 */
   id?: number;
@@ -762,6 +711,45 @@ export interface PhysicalDeliveryResponseDto {
   warehouse?: string;
 }
 
+export interface UserAccount {
+  /** @format date-time */
+  version?: string;
+  /** @format date-time */
+  createdAt?: string;
+  /** @format int64 */
+  id?: number;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  nationalId?: string;
+  /** @format date-time */
+  birthDate?: string;
+  username?: string;
+  email?: string;
+  passwordHash?: string;
+  isKycVerified?: boolean;
+  userLevel?: "NORMAL" | "VIP" | "COLLEAGUE";
+  referralCode?: string;
+  accountReferralCode?: string;
+  referredBy?: UserAccount;
+  /** @format date-time */
+  updatedAt?: string;
+  secondAuthType?: "SMS" | "GOOGLE";
+  secondAuthSecret?: string;
+  status?: "ACTIVE" | "BLOCKED" | "SUSPENDED";
+  type?: UserType;
+  /** @format int64 */
+  partyId?: number;
+  userRole?: "USER" | "ADMIN";
+  permissions?: PermissionAccess[];
+  enabled?: boolean;
+  password?: string;
+  authorities?: GrantedAuthority[];
+  accountNonLocked?: boolean;
+  accountNonExpired?: boolean;
+  credentialsNonExpired?: boolean;
+}
+
 export interface UserAccountDto {
   /** @format int64 */
   id?: number;
@@ -782,6 +770,17 @@ export interface UserAccountDto {
   typeCode?: string;
   /** @format date-time */
   joinDate?: string;
+}
+
+export interface UserType {
+  /** @format date-time */
+  version?: string;
+  /** @format date-time */
+  createdAt?: string;
+  description?: string;
+  code?: string;
+  /** @format int64 */
+  id?: number;
 }
 
 export interface TradeFilter {
@@ -1447,7 +1446,7 @@ export interface CashoutDto {
 
 export interface CashoutChangeStatusRequestDto {
   /** @format int64 */
-  id?: number;
+  cashoutId?: number;
   statusType?:
     | "Requested"
     | "InProcessing"
@@ -1456,6 +1455,18 @@ export interface CashoutChangeStatusRequestDto {
     | "Reverse"
     | "Cancelled"
     | "Completed";
+  bankStatus?:
+    | "CREATED"
+    | "ACCEPT"
+    | "REJECT"
+    | "GOTOBANK"
+    | "CHECKED"
+    | "REVERSE"
+    | "ACTIVE"
+    | "DEACTIVATE";
+  referenceCode?: string;
+  tranceNumber?: string;
+  provider?: string;
 }
 
 export interface InvestmentAccountDto {
